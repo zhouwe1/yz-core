@@ -15,14 +15,17 @@
 """
 import os
 import sys
+
 sys.path.append(os.path.dirname(os.pardir))
 
 import re
+
 SYS_ENV = 'win' if re.search('[Ww]in', sys.platform) else 'unix'
 
 import logging
 from .config import LOG_PATH, LOGGING_CONFIG
 from .handlers import TimedRotatingFileHandlerMP as TRFMP
+
 
 # from logging.config import dictConfig
 # from logging.handlers import TimedRotatingFileHandler
@@ -89,12 +92,17 @@ class InitLoggerConfig:
                 self.log_config['handlers'][
                     handler_name] = self.get_console_handler_conf()
             else:
-                filename = os.path.join(self.log_cur_path, (level + '.log'))
                 lev_up = level.upper()
-                self.log_config['handlers'][
-                    handler_name] = self.get_file_handler_conf(
-                    filename=filename, level=lev_up)
-
+                if self.is_debug:
+                    # is_debug开启输出到终端
+                    console_handler_conf = self.get_console_handler_conf(lev_up)
+                    self.log_config['handlers'][
+                        handler_name] = console_handler_conf
+                else:
+                    filename = os.path.join(self.log_cur_path, (level + '.log'))
+                    self.log_config['handlers'][
+                        handler_name] = self.get_file_handler_conf(
+                        filename=filename, level=lev_up)
         # 添加app logger及app_request logger
         logger_name = '%s_logger' % self.app_name
         self.log_config['loggers'][logger_name] = self.get_logger_conf()
@@ -108,21 +116,18 @@ class InitLoggerConfig:
                 config.fileConfig(self.log_config)
         # dictConfig(LOGGING_CONFIG)
 
-    def get_console_handler_conf(self):
+    def get_console_handler_conf(self, level='DEBUG'):
         console_handler_conf = {
             # 定义输出流的类
             "class": "logging.StreamHandler",
             # handler等级，如果实际执行等级高于此等级，则不触发handler
-            "level": "DEBUG",
+            "level": level,
             # 输出的日志格式
             "formatter": "standard",
             # 流调用系统输出
-            "stream": "ext://sys.stdout"
+            "stream": "ext://sys.stdout",
+            'filters': ['%s_filter' % (level.lower())]
         }
-        if self.is_debug:
-            console_handler_conf['filters'] = ['debug_filter']
-        else:
-            console_handler_conf['filters'] = ['notset_filter']
         return console_handler_conf
 
     @staticmethod
@@ -139,7 +144,8 @@ class InitLoggerConfig:
             "encoding": "utf8",
         }
         if SYS_ENV == 'win':
-            file_handler_conf['class'] = 'logging.handlers.TimedRotatingFileHandler'
+            file_handler_conf[
+                'class'] = 'logging.handlers.TimedRotatingFileHandler'
         filters = ['%s_filter' % (level.lower())]
         update_dict = {'filename': filename, 'level': level, 'filters': filters}
         file_handler_conf.update(update_dict)
