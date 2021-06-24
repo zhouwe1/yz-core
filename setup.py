@@ -6,14 +6,14 @@ with open("README.md", "r", encoding="utf-8") as fh:
     long_description = fh.read()
 
 setuptools.setup(
-    name="yzcore",  # Replace with your own username
-    version="0.1.1",
-    author="cml",
-    author_email="caimengli0660@gmail.com",
+    name="yz-core",  # Replace with your own username
+    version="0.1.2",
+    author="lxm",
+    author_email="luoyuren13@gmail.com",
     description="An ID generator for distributed microservices",
     long_description=long_description,
     long_description_content_type="text/markdown",
-    url="https://github.com/ml444/yz-core.git",
+    url="https://github.com/lixuemin13/yz-core.git",
     packages=setuptools.find_packages(),
     package_data={'yzcore': [
         'templates/project_template/*',
