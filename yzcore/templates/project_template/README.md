@@ -8,7 +8,7 @@ yzcore 目的为了开发后端服务时，提供一种代码结构规范参考�
 可以通过`startproject`和`startapp`两个命令快速创建工程和内部的接口应用模块。
 **安装模块**
 ```shell
-$ pip install yzcore
+$ pip install yz-core
 ```
 示例：
 - 创建工程：
