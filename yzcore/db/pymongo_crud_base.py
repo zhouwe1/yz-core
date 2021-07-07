@@ -31,9 +31,13 @@ class MongoCRUDBase(Generic[CreateSchemaType, UpdateSchemaType]):
             self,
             collection_name: ModelType,
             db_name: str = "test_db",
-            db_url: AnyUrl = "mongodb://localhost:27017/"
+            db_url: AnyUrl = "mongodb://localhost:27017/",
+            client: ClientSession = None
     ):
-        self.client = MongoClient(db_url)
+        if client:
+            self.client = client
+        else:
+            self.client = MongoClient(db_url)
         self.db = self.client[db_name]
         self.collection = self.db[collection_name]
         # self.coll_name = collection_name
