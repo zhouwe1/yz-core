@@ -5,5 +5,3 @@
 @date: 2020-5-31
 @desc: ...
 """
-from .pymongo_crud_base import MongoCRUDBase
-from .sqlalchemy_crud_base import OrmCRUDBase

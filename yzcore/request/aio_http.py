@@ -140,7 +140,7 @@ class AioHTTP:
         client_session = cls.get_session()
         __request = getattr(client_session, method.lower())
         if params:
-            params = {key: value for key, value in params.items() if
+            params = {key: str(value) for key, value in params.items() if
                       value is not None}
         async with cls.semaphore:
             try:
