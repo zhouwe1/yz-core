@@ -36,7 +36,7 @@ UpdateSchemaType = TypeVar("UpdateSchemaType", bound=BaseModel)
 
 
 class OrmCRUDBase(Generic[ModelType, CreateSchemaType, UpdateSchemaType]):
-    def __init__(self, model: Type[ModelType]):
+    def __init__(self, model: ModelType):
         """
         CRUD object with default methods to Create, Read, Update, Delete (CRUD).
         **Parameters**
