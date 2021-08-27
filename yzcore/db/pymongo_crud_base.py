@@ -29,7 +29,7 @@ DictorList = TypeVar("DictorList", dict, list)
 class MongoCRUDBase(Generic[CreateSchemaType, UpdateSchemaType]):
     def __init__(
             self,
-            collection_name: ModelType,
+            collection_name: Type[ModelType],
             db_name: str = "test_db",
             db_url: AnyUrl = "mongodb://localhost:27017/",
             client: ClientSession = None
@@ -100,7 +100,7 @@ class MongoCRUDBase(Generic[CreateSchemaType, UpdateSchemaType]):
             limit=limit,
             sort=sort
         )
-        results = self.collection.find(**data, session=session)
+        results = list(self.collection.find(**data, session=session))
         return results
 
     def create(self, data: DictorList, is_return_obj: bool = False,
