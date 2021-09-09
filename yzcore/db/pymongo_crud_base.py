@@ -29,7 +29,7 @@ DictorList = TypeVar("DictorList", dict, list)
 class MongoCRUDBase(Generic[CreateSchemaType, UpdateSchemaType]):
     def __init__(
             self,
-            collection_name: Type[ModelType],
+            collection_name: ModelType,
             db_name: str = "test_db",
             db_url: AnyUrl = "mongodb://localhost:27017/",
             client: ClientSession = None
