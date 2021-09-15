@@ -130,7 +130,7 @@ class MongoCRUDBase(Generic[CreateSchemaType, UpdateSchemaType]):
         return result
 
     def update(self, opt, data: Dict, is_many: bool = False,
-               session: ClientSession = None):
+               is_set: bool = True, session: ClientSession = None):
         """
         更新操作
 
@@ -141,10 +141,14 @@ class MongoCRUDBase(Generic[CreateSchemaType, UpdateSchemaType]):
         :param data: 需要更新的数据：
                     {'field': 'xxx'}
         :param is_many: 是否批量更新，默认为False
+        :param is_set: 是否设置$set，默认为True
         :param session: 事务操作
         :return:
         """
-        update = {"$set": data}
+        if is_set:
+            update = {"$set": data}
+        else:
+            update = data
         if not is_many:
             result = self.collection.update_one(opt, update, session=session)
             # result = self.collection.find_one_and_update(opt, update)
