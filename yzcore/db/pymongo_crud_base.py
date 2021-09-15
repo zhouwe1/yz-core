@@ -55,18 +55,20 @@ class MongoCRUDBase(Generic[CreateSchemaType, UpdateSchemaType]):
         return self.collection.estimated_document_count(session=session)
 
     def get(self, opt: dict = None, is_logical_del: bool = False,
-            session: ClientSession = None):
+            select_col: DictorList = None, session: ClientSession = None):
         """
         查询操作
 
         :param opt:
-        :param is_logical_del:
+        :param is_logical_del: 是否逻辑删除
+        :param select_col: 应在结果集中返回的字段名列表，或指定要包含或排除的字段的dict
         :param session: 事务操作
         :return:
         """
         if is_logical_del:
             opt.update({"isDelete": False})
-        return self.collection.find_one(opt, session=session)
+        return self.collection.find_one(opt, projection=select_col,
+                                        session=session)
 
     def list(self, opt: dict = None, select_col: DictorList = None,
              limit: int = 0, offset: int = 0, sort: List[tuple] = None,
