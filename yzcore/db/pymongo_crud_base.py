@@ -186,21 +186,31 @@ class MongoCRUDBase(Generic[CreateSchemaType, UpdateSchemaType]):
                                                      session=session)
             return result.deleted_count
 
-    def batch_update(self, opt, datas: List, session: ClientSession = None):
+    def batch_update(self, bulk_update_datas: List[dict], session: ClientSession = None):
         """
         批量更新
 
-        :param opt:
-        :param datas:
+        :param bulk_update_datas: 格式:[{"opt": {}, "data": {}}]
         :param session: 事务操作
         :return:
         """
+        if not bulk_update_datas:
+            return 0
         requests = []
-        for data in datas:
-            # TODO 有误
-            requests.append(UpdateOne(opt, data))
+        for bulk_update_data in bulk_update_datas:
+            requests.append(UpdateOne(bulk_update_data['opt'], bulk_update_data['data']))
         result = self.collection.bulk_write(requests=requests, session=session)
         return result.modified_count
+
+    def aggregate(self, pipeline: List[dict], session: ClientSession = None, **kwargs):
+        """
+        聚合管道
+        :param pipeline:
+        :param session: 事务操作
+        :return:
+        """
+        cursor = self.collection.aggregate(pipeline, session=session, **kwargs)
+        return list(cursor)
 
 
 if __name__ == '__main__':

@@ -7,7 +7,7 @@ with open("README.md", "r", encoding="utf-8") as fh:
 
 setuptools.setup(
     name="yz-core",  # Replace with your own username
-    version="0.1.6",
+    version="0.1.7",
     author="lxm",
     author_email="luoyuren13@gmail.com",
     description="An ID generator for distributed microservices",
@@ -34,7 +34,7 @@ setuptools.setup(
     ],
     python_requires='>=3.6.8',
     install_requires=[
-        "fastapi>=0.63",
+        "fastapi>=0.68.1",
         "uvicorn>0.13",
         "yzrpc>=0.1",
     ],

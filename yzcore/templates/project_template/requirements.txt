@@ -1,7 +1,7 @@
 -i https://mirrors.aliyun.com/pypi/simple
 
-yzcore
-
+yz-core
+aiohttp==3.7.3  # aiohttp需为3.7.0及后续版本，解决复用链接keepalive引起的问题
 
 # #db模块需要的依赖包
 # alembic>=1.4.3
