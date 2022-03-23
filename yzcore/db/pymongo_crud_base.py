@@ -11,7 +11,7 @@ from pydantic import BaseModel, AnyUrl
 from pymongo.client_session import ClientSession
 
 try:
-    from pymongo import InsertOne, DeleteOne, ReplaceOne, UpdateMany, UpdateOne
+    from pymongo import InsertOne, DeleteOne, ReplaceOne, UpdateMany
     from pymongo.collection import Collection
     from pymongo import MongoClient
 except:
@@ -198,7 +198,7 @@ class MongoCRUDBase(Generic[CreateSchemaType, UpdateSchemaType]):
             return 0
         requests = []
         for bulk_update_data in bulk_update_datas:
-            requests.append(UpdateOne(bulk_update_data['opt'], bulk_update_data['data']))
+            requests.append(UpdateMany(bulk_update_data['opt'], bulk_update_data['data']))
         result = self.collection.bulk_write(requests=requests, session=session)
         return result.modified_count
 
