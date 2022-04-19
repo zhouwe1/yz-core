@@ -88,6 +88,10 @@ LOGGING_CONFIG = {
             # 较为复杂的输出模式，可以进行自定义
             'format': '%(asctime)s | %(levelname)s | PID:%(process)d | TID:%(threadName)s | [%(module)s: %(funcName)s] | - %(message)s'
         },
+        'custom': {
+            # 自定义json输出
+            'format': '{"created": "%(created)f", "levelname": "%(levelname)s", "PID": "%(process)d", "TID": "%(threadName)s", "pathname": "%(pathname)s", "lineno": "%(lineno)d", "message": "%(message)s"}'
+        },
     },
 
     # 过滤器

@@ -123,7 +123,7 @@ class InitLoggerConfig:
             # handler等级，如果实际执行等级高于此等级，则不触发handler
             "level": level,
             # 输出的日志格式
-            "formatter": "standard",
+            "formatter": "custom",
             # 流调用系统输出
             "stream": "ext://sys.stdout",
             'filters': ['%s_filter' % (level.lower())]
@@ -134,7 +134,7 @@ class InitLoggerConfig:
     def get_file_handler_conf(filename: str, level='INFO'):
         file_handler_conf = {
             "class": f"{TRFMP.__module__}.{TRFMP.__name__}",
-            "formatter": "standard",
+            "formatter": "custom",
             # 要写入的文件名
             # 分割单位，D日，H小时，M分钟，W星期，一般是以小时或天为单位
             # 比如文件名为test.log，到凌晨0点的时候会自动分离出test.log.yyyy-mm-dd
