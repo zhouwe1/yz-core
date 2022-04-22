@@ -61,7 +61,9 @@ class InitLoggerConfig:
 
         # 默认路径为当前项目根目录下的logs/${app_name}
         self.log_cur_path = os.path.join(self.log_path, self.app_name)
-        self.mkdir_log_path()
+        if not is_debug:
+            # 默认路径为当前项目根目录下的logs/${app_name},debug模式下全部输出到终端没必要创建文件夹
+            self.mkdir_log_path()
         self.configure_logging()
 
     def mkdir_log_path(self):
