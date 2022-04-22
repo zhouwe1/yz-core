@@ -24,30 +24,30 @@ class BaseNacosClient:
         self.nacos_port = nacos_port
         self.client = nacos.NacosClient(nacos_url,namespace=namespace,username=username,password=password)
 
-async def send_heartbeat(self):
-    """向nacos发送心跳"""
-    try:
-        self.client.send_heartbeat(
-            self.service_name,
-            ip=self.nacos_ip,
-            port=self.nacos_port
+    async def send_heartbeat(self):
+        """向nacos发送心跳"""
+        try:
+            self.client.send_heartbeat(
+                self.service_name,
+                ip=self.nacos_ip,
+                port=self.nacos_port
+                )
+        except Exception:
+            # 如果没有收到心跳返回信息则重新注册
+            self.client.add_naming_instance(
+                service_name=self.service_name,
+                ip=self.nacos_ip,
+                port=self.nacos_port
             )
-    except Exception:
-        # 如果没有收到心跳返回信息则重新注册
-        self.client.add_naming_instance(
-            service_name=self.service_name,
-            ip=self.nacos_ip,
-            port=self.nacos_port
-        )
 
 
-def register_nacos(self):
-    """微服务注册nacos"""
-    try:
-        self.client.add_naming_instance(
-            service_name=self.service_name,
-            ip=self.nacos_ip,
-            port=self.nacos_port
-        )
-    except Exception as ex:
-        logging.error("Failed to register to nacos : %s", ex)
+    def register_nacos(self):
+        """微服务注册nacos"""
+        try:
+            self.client.add_naming_instance(
+                service_name=self.service_name,
+                ip=self.nacos_ip,
+                port=self.nacos_port
+            )
+        except Exception as ex:
+            logging.error("Failed to register to nacos : %s", ex)
