@@ -71,7 +71,6 @@ sys.path.append(curr_path)
 LOG_PATH = os.path.join(curr_path, 'logs')
 # from src.settings import log_conf
 # LOG_PATH = log_conf.get('log_path')
-print("====>log_path:", LOG_PATH)
 
 from .filters import *
 

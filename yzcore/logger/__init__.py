@@ -50,7 +50,6 @@ class InitLoggerConfig:
             return
         self.log_path = log_path
         log_file_dir = os.path.join(self.log_path, app_name)
-        print("初始化%s的logger，日志写入：%s 文件夹下" % (app_name, log_file_dir))
         self.__is_init = True
         self.app_name = app_name
         self.is_debug = is_debug
@@ -63,6 +62,7 @@ class InitLoggerConfig:
         self.log_cur_path = os.path.join(self.log_path, self.app_name)
         if not is_debug:
             # 默认路径为当前项目根目录下的logs/${app_name},debug模式下全部输出到终端没必要创建文件夹
+            print("初始化%s的logger，日志写入：%s 文件夹下" % (app_name, log_file_dir))
             self.mkdir_log_path()
         self.configure_logging()
 
