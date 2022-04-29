@@ -16,3 +16,6 @@ aiohttp==3.7.3  # aiohttp需为3.7.0及后续版本，解决复用链接keepaliv
 # #测试模块需要用到的依赖包
 # pytest==6.1.1
 # aioresponses==0.7.0
+
+# nacos依赖包
+# nacos-sdk-python==0.1.6
