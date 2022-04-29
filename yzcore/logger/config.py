@@ -89,7 +89,7 @@ LOGGING_CONFIG = {
         },
         'custom': {
             # 自定义json输出
-            'format': '{"created": "%(created)f", "levelname": "%(levelname)s", "PID": "%(process)d", "TID": "%(threadName)s", "pathname": "%(pathname)s", "lineno": "%(lineno)d", "message": "%(message)s"}'
+            'format': '{"level": "%(levelname)s", "now": "%(created)f", "PID": "%(process)d", "pathname": "%(pathname)s", "lineno": "%(lineno)d", "message": "%(message)s"}'
         },
     },
 
