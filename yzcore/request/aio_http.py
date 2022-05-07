@@ -44,7 +44,7 @@ RequestParams = TypeVar("RequestParams", bound=AioHttpParams)
 
 SIZE_POOL_AIOHTTP = 100
 CONCURRENCY = 100  # 限制并发量为1024
-UVICORN_TIMEOUT_KEEP_ALIVE = 5  # 取决于用的web服务器设置的tcp keepalive时长，uvicorn默认5秒
+TIMEOUT_KEEP_ALIVE = 5  # 取决于用的web服务器设置的tcp keepalive时长，uvicorn默认5秒
 
 
 class AioHTTP:
@@ -73,7 +73,7 @@ class AioHTTP:
             connector = aiohttp.TCPConnector(
                 family=AF_INET,
                 limit_per_host=SIZE_POOL_AIOHTTP,
-                keepalive_timeout=UVICORN_TIMEOUT_KEEP_ALIVE
+                keepalive_timeout=TIMEOUT_KEEP_ALIVE
             )
             cls.session = aiohttp.ClientSession(
                 timeout=timeout,
