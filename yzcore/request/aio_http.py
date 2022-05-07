@@ -40,11 +40,11 @@ else:
         headers: Optional[Dict]
         timeout: Optional[int]
 
-
 RequestParams = TypeVar("RequestParams", bound=AioHttpParams)
 
 SIZE_POOL_AIOHTTP = 100
 CONCURRENCY = 100  # 限制并发量为1024
+UVICORN_TIMEOUT_KEEP_ALIVE = 5  # 取决于用的web服务器设置的tcp keepalive时长，uvicorn默认5秒
 
 
 class AioHTTP:
@@ -72,7 +72,8 @@ class AioHTTP:
             timeout = aiohttp.ClientTimeout(total=2)
             connector = aiohttp.TCPConnector(
                 family=AF_INET,
-                limit_per_host=SIZE_POOL_AIOHTTP
+                limit_per_host=SIZE_POOL_AIOHTTP,
+                keepalive_timeout=UVICORN_TIMEOUT_KEEP_ALIVE
             )
             cls.session = aiohttp.ClientSession(
                 timeout=timeout,
@@ -121,7 +122,7 @@ class AioHTTP:
     async def fetch(
             cls, method: str, url: str,
             params=None, data=None, json=None, headers=None, timeout=30,
-            is_close_sesion: bool=False, **kwargs
+            is_close_sesion: bool = False, **kwargs
     ):
         """
         公共请求调用方法
@@ -136,7 +137,6 @@ class AioHTTP:
         :param is_close_sesion: 是否关闭Session
         :return:
         """
-        await asyncio.sleep(.1)
         client_session = cls.get_session()
         __request = getattr(client_session, method.lower())
         if params:
@@ -210,7 +210,7 @@ class AioHTTP:
 
 
 def request(method: str, url: str, params=None, data=None,
-                json=None, headers=None, timeout=30):
+            json=None, headers=None, timeout=30):
     # _func = getattr(AioHTTP, method.lower())
     loop = asyncio.get_event_loop()
 
