@@ -32,8 +32,7 @@ from Crypto.Signature import pkcs1_15
 
 from yzcore.exceptions import RequestParamsError
 from yzcore.request import AioHTTP
-import warnings
-# from enum import Enum
+
 try:
     import oss2
 except:
@@ -50,9 +49,6 @@ IMAGE_FORMAT_SET = [
 
 OssManagerError = type("OssManagerError", (ValueError,), {})
 
-
-warnings.warn('The aliyun_oss module is deprecated',
-              category=DeprecationWarning, stacklevel=2)
 
 class OssManager(object):
     """
@@ -99,6 +95,7 @@ class OssManager(object):
             cname=None,
             cache_path='.',
             expire_time=30,
+            mode=None,
             **kwargs
     ):
         self.access_key_id = access_key_id
@@ -113,7 +110,7 @@ class OssManager(object):
         self.policy_expire_time = kwargs.get("policy_expire_time", expire_time)
 
         self.cname = cname
-
+        self.mode = mode
         self.bucket = None
         self.__init()
 
@@ -259,6 +256,10 @@ class OssManager(object):
             return filepath
         else:
             return None
+
+    def iter_objects(self, prefix='', marker='', delimiter='', max_keys=100):
+        """遍历bucket下的文件"""
+        return oss2.ObjectIterator(self.bucket, prefix=prefix, marker=marker, delimiter=delimiter, max_keys=max_keys)
 
     def download(self, key, local_name=None, process=None, is_stream=False):
         """

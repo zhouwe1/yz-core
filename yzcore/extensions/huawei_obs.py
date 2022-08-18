@@ -135,7 +135,6 @@ class ObsManager(OssManagerBase):
 
     def __init__(self, *args, **kwargs):
         super(ObsManager, self).__init__(*args, **kwargs)
-        self.custom_url = kwargs.get('custom_url', '')
         self.__init()
 
     def __init(self, *args, **kwargs):
@@ -196,6 +195,11 @@ class ObsManager(OssManagerBase):
                 "PUT", self.bucket_name, objectKey=key, expires=expire)
             return res.signedUrl
 
+    def iter_objects(self, prefix='', marker=None, delimiter=None, max_keys=100):
+        """遍历bucket下的文件"""
+        resp = self.obsClient.listObjects(self.bucket_name, prefix=prefix, marker=marker,delimiter=delimiter, max_keys=max_keys)
+        return resp.body.contents
+
     def download(self, key, local_name=None, is_stream=False, progress_callback=None):
         if is_stream:
             return self.get_file_stream(key)
@@ -219,31 +223,23 @@ class ObsManager(OssManagerBase):
         # 获取对象内容
         return resp.body.buffer
 
-    def upload(self, key=None, filepath=None, content=None):
-        if not any((filepath, content)):
-            raise ValueError("not any((filepath, content))")
+    def upload(self, filepath, key=None):
+        """上传文件"""
         if key is None and filepath:
             key = filepath.split('/')[-1]
-        try:
-            if content:
-                resp = self.obsClient.putContent(
-                    self.bucket_name, key, content=content)
-            else:
-                resp = self.obsClient.putFile(
-                    self.bucket_name, key, filepath)
-            if resp.status < 300:
-                print('requestId:', resp.requestId)
-                return True, self.get_file_url(filepath, key)
-            else:
-                print('errorCode:', resp.errorCode)
-                print('errorMessage:', resp.errorMessage)
-                return False, None
-        except:
-            import traceback
-            print(traceback.format_exc())
 
-    # def close_client(self):
-    #     return self.obsClient.close()
+        if isinstance(filepath, str):
+            self.obsClient.putFile(
+                self.bucket_name, key, filepath)
+        else:
+            self.obsClient.putContent(
+                self.bucket_name, key, content=filepath)
+
+        # 返回下载链接
+        if not any((self.image_domain, self.asset_domain)):
+            return '//{}.{}/{}'.format(self.bucket_name, self.endpoint, key)
+        else:
+            return self.get_file_url(filepath, key)
 
     def get_policy(
             self,

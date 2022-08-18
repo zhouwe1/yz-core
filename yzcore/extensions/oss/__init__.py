@@ -64,6 +64,7 @@ class OssManagerBase(metaclass=ABCMeta):
             cname=None,
             cache_path='.',
             expire_time=30,
+            mode=None,
             **kwargs
     ):
         self.access_key_id = access_key_id
@@ -78,7 +79,7 @@ class OssManagerBase(metaclass=ABCMeta):
         self.policy_expire_time = kwargs.get("policy_expire_time", expire_time)
 
         self.cname = cname
-
+        self.mode = mode
         self.bucket = None
 
     @abstractmethod
@@ -104,6 +105,10 @@ class OssManagerBase(metaclass=ABCMeta):
     @abstractmethod
     def post_sign_url(self, key, expire=10):
         """生成上传对象的带授权信息的URL"""
+
+    @abstractmethod
+    def iter_objects(self, prefix='', marker=None, delimiter=None, max_keys=100):
+        """遍历存储桶内的文件"""
 
     @abstractmethod
     def download(self, *args, **kwargs):
