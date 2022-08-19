@@ -223,14 +223,17 @@ class ObsManager(OssManagerBase):
         # 获取对象内容
         return resp.body.buffer
 
-    def upload(self, filepath, key=None):
+    def upload(self, filepath, key=None, **kwargs):
         """上传文件"""
         if key is None and filepath:
             key = filepath.split('/')[-1]
 
         if isinstance(filepath, str):
+            headers = None
+            if filepath.endswith(".dds"):
+                headers = obs.PutObjectHeader(contentType="application/octet-stream")
             self.obsClient.putFile(
-                self.bucket_name, key, filepath)
+                self.bucket_name, key, filepath, headers=headers)
         else:
             self.obsClient.putContent(
                 self.bucket_name, key, content=filepath)

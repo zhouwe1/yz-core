@@ -288,20 +288,23 @@ class OssManager(object):
             self.bucket.get_object_to_file(key, local_name, process=process)
             return local_name
 
-    def upload(self, filepath, key=None, num_threads=2):
+    def upload(self, filepath, key=None, num_threads=2, multipart_threshold=None):
         """上传oss文件"""
         if key is None:
             key = filepath.split('/')[-1]
-        headers = None
-        if filepath.endswith(".dds"):
-            headers = dict()
-            headers["Content-Type"] = "application/octet-stream"
 
-        result = oss2.resumable_upload(
-            self.bucket, key, filepath,
-            headers=headers,
-            num_threads=num_threads,
-        )
+        if isinstance(filepath, str):
+            headers = None
+            if filepath.endswith(".dds"):
+                headers = {"Content-Type": "application/octet-stream"}
+            result = oss2.resumable_upload(
+                self.bucket, key, filepath,
+                headers=headers,
+                num_threads=num_threads,
+                multipart_threshold=multipart_threshold,
+            )
+        else:
+            result = self.bucket.put_object(key, filepath)
         # 返回下载链接
         if not any((self.image_domain, self.asset_domain)):
             return result.resp.response.url
