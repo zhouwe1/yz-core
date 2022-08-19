@@ -384,6 +384,8 @@ class OssManager(object):
         return sign_result.decode()
 
     def get_file_url(self, filepath, key):
+        if not isinstance(filepath, str):
+            filepath = key
         if filepath.split('.')[-1] in IMAGE_FORMAT_SET:
             resource_url = u"//{domain}/{key}".format(
                 domain=self.image_domain, key=key)
