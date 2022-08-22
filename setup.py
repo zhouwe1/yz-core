@@ -45,7 +45,7 @@ setuptools.setup(
     },
     extras_require={
         'rpc': ['yzrpc>=0.1'],
-        'oss-aliyun': ['oss2>=2.13.0, !=3.0.0'],
+        'oss-aliyun': ['oss2>=2.13.1, !=3.0.0'],
         'oss-huawei': ['esdk-obs-python>=3.22.2'],
         'oss-aws': ['boto3==1.17.27'],
     }

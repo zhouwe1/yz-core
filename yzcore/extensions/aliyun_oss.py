@@ -30,8 +30,9 @@ from Crypto.Hash import MD5
 from Crypto.PublicKey import RSA
 from Crypto.Signature import pkcs1_15
 
-from yzcore.exceptions import RequestParamsError
+from yzcore.exceptions import RequestParamsError, StorageError
 from yzcore.request import AioHTTP
+from yzcore.utils.check_storage import create_temp_file
 
 try:
     import oss2
@@ -442,6 +443,26 @@ class OssManager(object):
         #     print('Authorization verify failed!')
         #     print('Public key : %s' % (pub_key))
         #     print('Auth string : %s' % (auth_str))
+
+    def check(self):
+        """通过上传和下载检查对象存储配置是否正确"""
+        verify = False
+        # 生成一个内存文件
+        temp_file = create_temp_file(text_length=32)
+        text = temp_file.getvalue().decode()
+        # 上传
+        result = self.upload(temp_file, key=f'storage_check_{text}.txt')
+        print(result)
+        # 下载
+        download_file = self.download(key=f'storage_check_{text}.txt')
+        print(download_file)
+        with open(download_file, 'rb') as f:
+            if text == f.read().decode():
+                verify = True
+        os.remove(download_file)
+        if not verify:
+            raise StorageError('对象存储配置校验未通过，请检查配置')
+        return True
 
 
 def make_dir(dir_path):

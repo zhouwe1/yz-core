@@ -38,6 +38,8 @@ import hashlib
 import datetime
 from importlib import import_module
 from abc import ABCMeta, abstractmethod
+from yzcore.utils.check_storage import create_temp_file
+from yzcore.exceptions import StorageError
 
 IMAGE_FORMAT_SET = [
     'bmp', 'jpg', 'jpeg', 'png', 'tif', 'gif', 'pcx', 'tga',
@@ -209,6 +211,25 @@ class OssManagerBase(metaclass=ABCMeta):
             os.makedirs(dir_path)
         except OSError:
             pass
+
+    def check(self):
+        """通过上传和下载检查对象存储配置是否正确"""
+        verify = False
+        # 生成一个内存文件
+        temp_file = create_temp_file(text_length=32)
+        text = temp_file.getvalue().decode()
+        # 上传
+        self.upload(temp_file, key=f'storage_check_{text}.txt')
+        # 下载
+        download_file = self.download(key=f'storage_check_{text}.txt')
+
+        with open(download_file, 'rb') as f:
+            if text == f.read().decode():
+                verify = True
+        os.remove(download_file)
+        if not verify:
+            raise StorageError('对象存储配置校验未通过，请检查配置')
+        return True
 
 
 class OssManagerProxy:

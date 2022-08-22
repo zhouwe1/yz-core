@@ -11,6 +11,7 @@ import os
 import functools
 from obs import ObsClient as _ObsClient, const, util, client
 from yzcore.extensions.oss import OssManagerBase, OssRequestError
+from yzcore.exceptions import StorageError
 
 try:
     import obs
@@ -232,11 +233,15 @@ class ObsManager(OssManagerBase):
             headers = None
             if filepath.endswith(".dds"):
                 headers = obs.PutObjectHeader(contentType="application/octet-stream")
-            self.obsClient.putFile(
+            resp = self.obsClient.putFile(
                 self.bucket_name, key, filepath, headers=headers)
         else:
-            self.obsClient.putContent(
+            resp = self.obsClient.putContent(
                 self.bucket_name, key, content=filepath)
+
+        if resp.status > 200:
+            msg = resp.errorMessage
+            raise StorageError(f'obs error: {msg}')
 
         # 返回下载链接
         if not any((self.image_domain, self.asset_domain)):
