@@ -9,12 +9,12 @@ import base64
 import json
 import os
 import functools
-from obs import ObsClient as _ObsClient, const, util, client
 from yzcore.extensions.oss import OssManagerBase, OssRequestError
 from yzcore.exceptions import StorageError
 
 try:
     import obs
+    from obs import ObsClient as _ObsClient, const, util, client
 except:
     obs = None
 
@@ -198,8 +198,15 @@ class ObsManager(OssManagerBase):
 
     def iter_objects(self, prefix='', marker=None, delimiter=None, max_keys=100):
         """遍历bucket下的文件"""
-        resp = self.obsClient.listObjects(self.bucket_name, prefix=prefix, marker=marker,delimiter=delimiter, max_keys=max_keys)
-        return resp.body.contents
+        _result = []
+        resp = self.obsClient.listObjects(self.bucket_name, prefix=prefix, marker=marker, delimiter=delimiter,
+                                          max_keys=max_keys)
+        for obj in resp.body.contents:
+            obj['url'] = self.get_file_url(obj['key'], obj['key'])
+            obj.pop('lastModified', '')
+            obj.pop('owner', '')
+            _result.append(obj)
+        return _result
 
     def download(self, key, local_name=None, is_stream=False, progress_callback=None):
         if is_stream:

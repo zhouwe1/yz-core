@@ -260,7 +260,14 @@ class OssManager(object):
 
     def iter_objects(self, prefix='', marker='', delimiter='', max_keys=100):
         """遍历bucket下的文件"""
-        return oss2.ObjectIterator(self.bucket, prefix=prefix, marker=marker, delimiter=delimiter, max_keys=max_keys)
+        _result = []
+        for obj in oss2.ObjectIterator(self.bucket, prefix=prefix, marker=marker, delimiter=delimiter, max_keys=max_keys):
+            obj_dict = obj.__dict__
+            obj_dict.pop('last_modified', '')
+            obj_dict.pop('owner', '')
+            obj_dict['url'] = self.get_file_url(obj.key, obj.key)
+            _result.append(obj_dict)
+        return _result
 
     def download(self, key, local_name=None, process=None, is_stream=False):
         """
@@ -298,17 +305,15 @@ class OssManager(object):
             headers = None
             if filepath.endswith(".dds"):
                 headers = {"Content-Type": "application/octet-stream"}
-            result = oss2.resumable_upload(
+            oss2.resumable_upload(
                 self.bucket, key, filepath,
                 headers=headers,
                 num_threads=num_threads,
                 multipart_threshold=multipart_threshold,
             )
         else:
-            result = self.bucket.put_object(key, filepath)
+            self.bucket.put_object(key, filepath)
         # 返回下载链接
-        if not any((self.image_domain, self.asset_domain)):
-            return result.resp.response.url
         return self.get_file_url(filepath, key)
 
     def get_policy(
@@ -387,7 +392,10 @@ class OssManager(object):
     def get_file_url(self, filepath, key):
         if not isinstance(filepath, str):
             filepath = key
-        if filepath.split('.')[-1] in IMAGE_FORMAT_SET:
+
+        if not any((self.image_domain, self.asset_domain)):
+            resource_url = u"{}.{}/{}".format(self.bucket_name, self.endpoint, key).replace("-internal", "")
+        elif filepath.split('.')[-1] in IMAGE_FORMAT_SET:
             resource_url = u"//{domain}/{key}".format(
                 domain=self.image_domain, key=key)
         else:
