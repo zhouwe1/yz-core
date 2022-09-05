@@ -31,6 +31,7 @@ from Crypto.PublicKey import RSA
 from Crypto.Signature import pkcs1_15
 
 from yzcore.exceptions import RequestParamsError, StorageError
+from yzcore.extensions.oss import OssManagerBase, OssManagerError
 from yzcore.request import AioHTTP
 from yzcore.utils.check_storage import create_temp_file
 
@@ -48,10 +49,8 @@ IMAGE_FORMAT_SET = [
     'eps', 'ai', 'raw', 'WMF', 'webp', 'tiff'
 ]
 
-OssManagerError = type("OssManagerError", (ValueError,), {})
 
-
-class OssManager(object):
+class OssManager(OssManagerBase):
     """
     使用示例:
         >>> from . import OssManager
@@ -87,32 +86,8 @@ class OssManager(object):
         "zrs": oss2.BUCKET_DATA_REDUNDANCY_TYPE_ZRS,    # 同城冗余（跨机房）
     }
 
-    def __init__(
-            self,
-            access_key_id,
-            access_key_secret,
-            bucket_name,
-            endpoint=None,
-            cname=None,
-            cache_path='.',
-            expire_time=30,
-            mode=None,
-            **kwargs
-    ):
-        self.access_key_id = access_key_id
-        self.access_key_secret = access_key_secret
-        self.bucket_name = bucket_name
-        self.endpoint = endpoint
-
-        self.cache_path = cache_path
-        self.scheme = kwargs.get("scheme", "https")
-        self.image_domain = kwargs.get("image_domain")
-        self.asset_domain = kwargs.get("asset_domain")
-        self.policy_expire_time = kwargs.get("policy_expire_time", expire_time)
-
-        self.cname = cname
-        self.mode = mode
-        self.bucket = None
+    def __init__(self, *args, **kwargs):
+        super(OssManager, self).__init__(*args, **kwargs)
         self.__init()
 
     def __init(self, bucket_name=None):
@@ -238,7 +213,8 @@ class OssManager(object):
         return result
 
     def get_sign_url(self, key, expire=10):
-        return self.bucket.sign_url("GET", key, expire)
+        url = self.bucket.sign_url("GET", key, expire)
+        return '//' + url.split('//', 1)[-1]
 
     def post_sign_url(self, key, expire=10):
         return self.bucket.sign_url("POST", key, expire)
@@ -388,20 +364,6 @@ class OssManager(object):
         )
         sign_result = base64.encodebytes(h.digest()).strip()
         return sign_result.decode()
-
-    def get_file_url(self, filepath, key):
-        if not isinstance(filepath, str):
-            filepath = key
-
-        if not any((self.image_domain, self.asset_domain)):
-            resource_url = u"{}.{}/{}".format(self.bucket_name, self.endpoint, key).replace("-internal", "")
-        elif filepath.split('.')[-1] in IMAGE_FORMAT_SET:
-            resource_url = u"//{domain}/{key}".format(
-                domain=self.image_domain, key=key)
-        else:
-            resource_url = u"//{domain}/{key}".format(
-                domain=self.asset_domain, key=key)
-        return resource_url
 
     def update_file_headers(self, key, headers):
         self.bucket.update_object_meta(key, headers)

@@ -5,7 +5,7 @@ from yzcore.extensions.huawei_obs import ObsManager
 class StorageManage(object):
     """
     通用的对象存储封装，根据mode选择oss/obs等等
-
+    mode,
     access_key_id,
     access_key_secret,
     bucket_name,

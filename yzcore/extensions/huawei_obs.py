@@ -143,12 +143,16 @@ class ObsManager(OssManagerBase):
         if obs is None:
             raise ImportError("'esdk-obs-python' must be installed to use OssManager")
         # 创建ObsClient实例
+
+        self.endpoint = self.cname if self.cname else self.endpoint
+        is_cname = True if self.cname else False
+
         self.obsClient = ObsClient(
             access_key_id=self.access_key_id,
             secret_access_key=self.access_key_secret,
-            server=self.endpoint
+            server=self.endpoint,
+            is_cname=is_cname,
         )
-        # self.bucket = self.obsClient.bucketClient(self.bucket_name)
 
     def create_bucket(
             self, bucket_name=None, location='cn-south-1'
@@ -184,8 +188,8 @@ class ObsManager(OssManagerBase):
         return self.obsClient.deleteBucket(bucket_name)
 
     def get_sign_url(self, key, expire=10):
-        res = self.obsClient.createSignedUrl("GET", self.bucket_name, key, expire)
-        return res.signedUrl
+        res = self.obsClient.createSignedUrl("GET", self.bucket_name, objectKey=key, expires=expire)
+        return '//' + res.signedUrl.split('//', 1)[-1]
 
     def post_sign_url(self, key, expire=10, form_param=None):
         if form_param:
