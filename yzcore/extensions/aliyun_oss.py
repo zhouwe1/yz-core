@@ -25,7 +25,7 @@ import base64
 import hmac
 import datetime
 import hashlib
-import urllib
+from urllib import parse
 from Crypto.Hash import MD5
 from Crypto.PublicKey import RSA
 from Crypto.Signature import pkcs1_15
@@ -235,7 +235,14 @@ class OssManager(OssManagerBase):
             return None
 
     def iter_objects(self, prefix='', marker='', delimiter='', max_keys=100):
-        """遍历bucket下的文件"""
+        """
+        遍历bucket下的文件
+        :param prefix: key前缀
+        :param marker:
+        :param delimiter:
+        :param max_keys:
+        :return: dict
+        """
         _result = []
         for obj in oss2.ObjectIterator(self.bucket, prefix=prefix, marker=marker, delimiter=delimiter, max_keys=max_keys):
             obj_dict = obj.__dict__
@@ -310,7 +317,7 @@ class OssManager(OssManagerBase):
 
         :return:
         """
-        params = urllib.parse.urlencode(
+        params = parse.urlencode(
             dict(data=json.dumps(callback_data)))
         policy_encode = self._get_policy_encode(filepath)
         sign = self.get_signature(policy_encode)

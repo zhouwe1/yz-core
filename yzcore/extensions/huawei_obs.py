@@ -201,7 +201,14 @@ class ObsManager(OssManagerBase):
             return res.signedUrl
 
     def iter_objects(self, prefix='', marker=None, delimiter=None, max_keys=100):
-        """遍历bucket下的文件"""
+        """
+        遍历bucket下的文件
+        :param prefix: key前缀
+        :param marker:
+        :param delimiter:
+        :param max_keys:
+        :return: dict
+        """
         _result = []
         resp = self.obsClient.listObjects(self.bucket_name, prefix=prefix, marker=marker, delimiter=delimiter,
                                           max_keys=max_keys)
