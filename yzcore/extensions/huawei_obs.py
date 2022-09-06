@@ -14,7 +14,7 @@ from yzcore.exceptions import StorageError
 
 try:
     import obs
-    from obs import ObsClient as _ObsClient, const, util, client
+    from obs import ObsClient as _ObsClient, const, util, client, SetObjectMetadataHeader
 except:
     obs = None
 
