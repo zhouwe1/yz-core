@@ -317,3 +317,8 @@ class ObsManager(OssManagerBase):
         obs_headers.contentType = headers.get('Content-Type')  # oss 和 obs的参数名称不相同
         self.obsClient.setObjectMetadata(self.bucket_name, key, headers)
 
+    def get_object_meta(self, key: str):
+        """获取文件基本元信息，包括该Object的ETag、Size（文件大小）、LastModified，并不返回其内容"""
+        resp = self.obsClient.getObjectMetadata(self.bucket_name, key)
+        return {'etag': resp.body.etag.strip('"').lower(), 'size': resp.body.contentLength, 'last_modified': resp.body.lastModified}
+

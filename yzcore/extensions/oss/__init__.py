@@ -233,6 +233,9 @@ class OssManagerBase(metaclass=ABCMeta):
             raise StorageError('对象存储配置校验未通过，请检查配置')
         return True
 
+    def get_object_meta(self, key: str):
+        """获取文件基本元信息，包括该Object的ETag、Size（文件大小）、LastModified，并不返回其内容"""
+
 
 class OssManagerProxy:
     def __init__(self, oss_type, **kwargs):
