@@ -335,6 +335,7 @@ class OssManager(OssManagerBase):
         base64_callback_body = base64.b64encode(callback_param)
 
         return dict(
+            mode='oss',
             accessid=self.access_key_id,
             host=f"{self.scheme}://{self.bucket_name}.{self.endpoint}",
             policy=policy_encode.decode(),

@@ -303,6 +303,7 @@ class ObsManager(OssManagerBase):
         res = self.post_sign_url(key=None, expire=self.policy_expire_time, form_param=form_param)
 
         data = dict(
+            mode='obs',
             accessid=self.access_key_id,
             host=f"{self.scheme}://{self.bucket_name}.{self.endpoint}",
             policy=res.policy,
