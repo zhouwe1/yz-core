@@ -35,7 +35,6 @@ import hmac
 import base64
 import hashlib
 import datetime
-from urllib import parse
 from importlib import import_module
 from abc import ABCMeta, abstractmethod
 from yzcore.utils.check_storage import create_temp_file
@@ -179,11 +178,11 @@ class OssManagerBase(metaclass=ABCMeta):
             # callback=base64_callback_body.decode(),
         )
 
-    def get_file_url(self, filepath, key):
+    def get_file_url(self, filepath=None, key=''):
         if not isinstance(filepath, str):
             filepath = key
         if not any((self.image_domain, self.asset_domain)):
-            resource_url = u"{}.{}/{}".format(self.bucket_name, self.endpoint, key).replace("-internal", "")
+            resource_url = u"//{}.{}/{}".format(self.bucket_name, self.endpoint, key).replace("-internal", "")
         elif filepath.split('.')[-1].lower() in IMAGE_FORMAT_SET:
             resource_url = u"//{domain}/{key}".format(
                 domain=self.image_domain, key=key)
