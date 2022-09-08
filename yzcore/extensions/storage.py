@@ -12,7 +12,8 @@ class StorageManage(object):
     endpoint=None,
     cname=None,
     cache_path='.',
-    expire_time=30,
+    private_expire_time=30,  # 上传签名有效时间
+    private_expire_time=30,  # 加签URl有效时间
 
     """
 

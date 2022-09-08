@@ -78,6 +78,7 @@ class OssManagerBase(metaclass=ABCMeta):
         self.image_domain = kwargs.get("image_domain")
         self.asset_domain = kwargs.get("asset_domain")
         self.policy_expire_time = kwargs.get("policy_expire_time", expire_time)
+        self.private_expire_time = kwargs.get("private_expire_time", expire_time)
 
         self.cname = cname
         self.mode = mode

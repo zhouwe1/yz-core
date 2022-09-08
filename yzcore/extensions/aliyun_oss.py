@@ -53,7 +53,6 @@ IMAGE_FORMAT_SET = [
 class OssManager(OssManagerBase):
     """
     使用示例:
-        >>> from . import OssManager
         >>> oss_conf = dict(
         ...     access_key_id="LTAIxxxxxxxxxxx",
         ...     access_key_secret="Cep4Mxxxxxxxxxxxxxxxxxxxx",
@@ -212,8 +211,8 @@ class OssManager(OssManagerBase):
         print('http status:', result.status)
         return result
 
-    def get_sign_url(self, key, expire=10):
-        url = self.bucket.sign_url("GET", key, expire)
+    def get_sign_url(self, key, expire=0):
+        url = self.bucket.sign_url("GET", key, expire or self.private_expire_time)
         return '//' + url.split('//', 1)[-1]
 
     def post_sign_url(self, key, expire=10):

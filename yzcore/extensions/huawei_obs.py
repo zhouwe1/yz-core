@@ -187,8 +187,8 @@ class ObsManager(OssManagerBase):
             bucket_name = self.bucket_name
         return self.obsClient.deleteBucket(bucket_name)
 
-    def get_sign_url(self, key, expire=10):
-        res = self.obsClient.createSignedUrl("GET", self.bucket_name, objectKey=key, expires=expire)
+    def get_sign_url(self, key, expire=0):
+        res = self.obsClient.createSignedUrl("GET", self.bucket_name, objectKey=key, expires=expire or self.private_expire_time)
         return '//' + res.signedUrl.split('//', 1)[-1]
 
     def post_sign_url(self, key, expire=10, form_param=None):
