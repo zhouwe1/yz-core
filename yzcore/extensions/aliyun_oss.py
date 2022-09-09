@@ -254,9 +254,8 @@ class OssManager(OssManagerBase):
     def download(self, key, local_name=None, process=None, is_stream=False):
         """
         下载oss文件
-
         :param key:
-        :param local_name:
+        :param local_name: 下载的文件在本地的路径
         :param process:
         :param is_stream:
             is_stream = True:
@@ -267,7 +266,7 @@ class OssManager(OssManagerBase):
                 >>> result = self.download('readme.txt', '/tmp/cache/readme.txt')
                 >>> print(result)
                 '/tmp/cache/readme.txt'
-        :return:
+        :return: 文件对象或文件下载后的本地路径
         """
         if is_stream:
             return self.bucket.get_object(key, process=process)
@@ -300,10 +299,10 @@ class OssManager(OssManagerBase):
 
     def get_policy(
             self,
-            filepath,
-            callback_url,
-            callback_data=None,
-            callback_content_type="application/json"):
+            filepath: str,
+            callback_url: str,
+            callback_data: dict = None,
+            callback_content_type: str = "application/json"):
         """
         授权给第三方上传
 

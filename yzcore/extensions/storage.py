@@ -18,9 +18,9 @@ class StorageManage(object):
     """
 
     def __new__(cls, **kwargs):
-        if kwargs['mode'] == 'obs':
+        if kwargs['mode'].lower() == 'obs':
             storage_manage = ObsManager(**kwargs)
-        elif kwargs['mode'] == 'oss':
+        elif kwargs['mode'].lower() == 'oss':
             storage_manage = OssManager(**kwargs)
         else:
             storage_manage = None

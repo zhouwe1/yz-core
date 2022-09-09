@@ -114,7 +114,7 @@ class OssManagerBase(metaclass=ABCMeta):
 
     @abstractmethod
     def download(self, *args, **kwargs):
-        """"""
+        """下载文件"""
 
     @abstractmethod
     def upload(self, *args, **kwargs):
@@ -140,44 +140,24 @@ class OssManagerBase(metaclass=ABCMeta):
         policy = json.dumps(policy_dict).strip().encode()
         return base64.b64encode(policy)
 
-    def get_signature(self, policy_encode):
-        """
-        获取签名
-
-        :param policy_encode:
-        :return:
-        """
-        h = hmac.new(
-            self.access_key_secret.encode("utf-8"), policy_encode, hashlib.sha1
-        )
-        sign_result = base64.encodebytes(h.digest()).strip()
-        return sign_result.decode()
-
+    @abstractmethod
     def get_policy(
             self,
-            key,
-            redirect_url,
-            # callback_data=None,
-            # callback_content_type="application/json"
+            filepath: str,
+            callback_url: str,
+            callback_data: dict = None,
+            callback_content_type: str = "application/json"
     ):
         """
         授权给第三方上传
-
-        :param key:
-        :param redirect_url:
+        :param filepath:
+        :param callback_url: 对象存储的回调地址
+        :param callback_data: 需要回传的参数
+        :param callback_content_type: 回调时的Content-Type
+               "application/json"
+               "application/x-www-form-urlencoded"
         :return:
         """
-        policy_encode = self._get_policy_encode(key, redirect_url)
-        sign = self.get_signature(policy_encode)
-        return dict(
-            key=key,
-            accessid=self.access_key_id,
-            host=f"{self.scheme}://{self.bucket_name}.{self.endpoint}",
-            policy=policy_encode.decode(),
-            signature=sign,
-            success_action_redirect=redirect_url
-            # callback=base64_callback_body.decode(),
-        )
 
     def get_file_url(self, filepath=None, key=''):
         if not isinstance(filepath, str):
@@ -233,6 +213,7 @@ class OssManagerBase(metaclass=ABCMeta):
             raise StorageError('对象存储配置校验未通过，请检查配置')
         return True
 
+    @abstractmethod
     def get_object_meta(self, key: str):
         """获取文件基本元信息，包括该Object的ETag、Size（文件大小）、LastModified，并不返回其内容"""
 

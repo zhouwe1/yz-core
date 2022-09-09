@@ -220,6 +220,14 @@ class ObsManager(OssManagerBase):
         return _result
 
     def download(self, key, local_name=None, is_stream=False, progress_callback=None):
+        """
+        下载obs文件
+        :param key:
+        :param local_name:
+        :param is_stream:
+        :param progress_callback:
+        :return: 文件对象或文件下载后的本地路径
+        """
         if is_stream:
             return self.get_file_stream(key)
         else:
@@ -269,10 +277,10 @@ class ObsManager(OssManagerBase):
 
     def get_policy(
             self,
-            filepath,
-            callback_url='http://47.106.69.126:8012/oss_callback?a=1&b=2',
-            callback_data=None,
-            callback_content_type="application/json"):
+            filepath: str,
+            callback_url: str,
+            callback_data: dict = None,
+            callback_content_type: str = "application/json"):
         """
         授权给第三方上传
 
