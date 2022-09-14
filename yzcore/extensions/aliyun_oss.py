@@ -26,14 +26,7 @@ import hmac
 import datetime
 import hashlib
 from urllib import parse
-from Crypto.Hash import MD5
-from Crypto.PublicKey import RSA
-from Crypto.Signature import pkcs1_15
-
-from yzcore.exceptions import RequestParamsError, StorageError
 from yzcore.extensions.oss import OssManagerBase, OssManagerError
-from yzcore.request import AioHTTP
-from yzcore.utils.check_storage import create_temp_file
 
 try:
     import oss2
@@ -373,52 +366,6 @@ class OssManager(OssManagerBase):
 
     def update_file_headers(self, key, headers):
         self.bucket.update_object_meta(key, headers)
-
-    async def callback_verify(self, path, pub_key_url_base64,
-                              authorization_base64, callback_body,
-                              query_string):
-        """
-        回调校验
-        """
-
-        try:
-            pub_key_url = base64.b64decode(pub_key_url_base64).decode()
-            response, status_code = await AioHTTP.get(pub_key_url)
-            if status_code != 200:
-                raise
-            pub_key = response.encode()
-        except Exception as e:
-            raise RequestParamsError('公钥获取失败')
-
-        # get authorization
-        authorization = base64.b64decode(authorization_base64)
-
-        # get callback body
-        # compose authorization string
-        if query_string:
-            auth_str = path + query_string + '\n' + callback_body
-        else:
-            auth_str = path + '\n' + callback_body
-        try:
-            key = RSA.import_key(pub_key)
-            h = MD5.new(auth_str.encode())
-            pkcs1_15.new(key).verify(h, authorization)
-        except Exception as e:
-            raise RequestParamsError('校验错误')
-        # verify authorization
-        # from M2Crypto import RSA
-        # from M2Crypto import BIO
-        # auth_md5 = md5(auth_str.encode()).digest()
-        # bio = BIO.MemoryBuffer(pub_key)
-        # rsa_pub = RSA.load_pub_key_bio(bio)
-        # try:
-        #     result = rsa_pub.verify(auth_md5, authorization, 'md5')
-        # except e:
-        #     result = False
-        # if not result:
-        #     print('Authorization verify failed!')
-        #     print('Public key : %s' % (pub_key))
-        #     print('Auth string : %s' % (auth_str))
 
     def get_object_meta(self, key: str):
         """获取文件基本元信息，包括该Object的ETag、Size（文件大小）、LastModified，并不返回其内容"""
