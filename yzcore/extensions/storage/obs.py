@@ -9,7 +9,7 @@ import base64
 import json
 import os
 import functools
-from yzcore.extensions.oss import OssManagerBase, OssRequestError
+from yzcore.extensions.storage.base import OssManagerBase, OssRequestError
 from yzcore.exceptions import StorageError
 
 try:
@@ -330,4 +330,3 @@ class ObsManager(OssManagerBase):
         """获取文件基本元信息，包括该Object的ETag、Size（文件大小）、LastModified，并不返回其内容"""
         resp = self.obsClient.getObjectMetadata(self.bucket_name, key)
         return {'etag': resp.body.etag.strip('"').lower(), 'size': resp.body.contentLength, 'last_modified': resp.body.lastModified}
-

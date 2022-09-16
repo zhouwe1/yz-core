@@ -1,5 +1,11 @@
-from yzcore.extensions.aliyun_oss import OssManager
-from yzcore.extensions.huawei_obs import ObsManager
+from yzcore.extensions.storage.oss import OssManager
+from yzcore.extensions.storage.obs import ObsManager
+from yzcore.extensions.storage.const import IMAGE_FORMAT_SET
+
+
+__all__ = [
+    'IMAGE_FORMAT_SET', 'StorageManage'
+]
 
 
 class StorageManage(object):

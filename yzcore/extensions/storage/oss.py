@@ -26,21 +26,12 @@ import hmac
 import datetime
 import hashlib
 from urllib import parse
-from yzcore.extensions.oss import OssManagerBase, OssManagerError
+from yzcore.extensions.storage.base import OssManagerBase
 
 try:
     import oss2
 except:
     oss2 = None
-
-__all__ = [
-    "OssManager", "OssManagerError"
-]
-IMAGE_FORMAT_SET = [
-    'bmp', 'jpg', 'jpeg', 'png', 'tif', 'gif', 'pcx', 'tga',
-    'exif', 'fpx', 'svg', 'psd', 'cdr', 'pcd', 'dxf', 'ufo',
-    'eps', 'ai', 'raw', 'WMF', 'webp', 'tiff'
-]
 
 
 class OssManager(OssManagerBase):
@@ -159,7 +150,7 @@ class OssManager(OssManagerBase):
         return self.service.list_buckets(
             prefix=prefix, marker=marker, max_keys=max_keys, params=params)
 
-    def is_exist_bucket(self):
+    def is_exist_bucket(self, bucket_name=None):
         """判断存储空间是否存在"""
         try:
             self.bucket.get_bucket_info()
@@ -386,98 +377,3 @@ def copy_file(src, dst):
     dst_dir = os.path.dirname(dst)
     make_dir(dst_dir)
     shutil.copy(src, dst)
-
-
-if __name__ == '__main__':
-    kwargs = dict(
-        access_key_id='',
-        access_key_secret='',
-        endpoint='oss-cn-shenzhen.aliyuncs.com',
-        bucket_name='',
-    )
-    oss_obj = OssManager(**kwargs)
-    file_name = '/Users/edz/realibox/base-all/base/src/core/request/beta_gangnam_style.fbx'
-    # remote_name = 'cmltest.fbx'
-
-    # 上传
-    result_obj = oss_obj.upload(file_name)
-    print(result_obj)
-    """
-    http://realicloud-local.oss-cn-shenzhen.aliyuncs.com/beta_gangnam_style.fbx
-    """
-
-    """
-    # result:
-    {
-        'resp': <oss2.http.Response object at 0x1071ddc50>, 
-        'status': 200, 
-        'headers': {
-            'Server': 'AliyunOSS', 
-            'Date': 'Tue, 20 Oct 2020 01:22:34 GMT', 
-            'Content-Length': '0', 
-            'Connection': 'keep-alive', 
-            'x-oss-request-id': '5F8E3BDAFEC931303087D9D9', 
-            'ETag': '"D41D8CD98F00B204E9800998ECF8427E"', 
-            'x-oss-hash-crc64ecma': '0', 
-            'Content-MD5': '1B2M2Y8AsgTpgAmY7PhCfg==', 
-            'x-oss-server-time': '63'
-        }, 
-        'request_id': '5F8E3BDAFEC931303087D9D9', 
-        'versionid': None, 
-        'delete_marker': None, 
-        'etag': 'D41D8CD98F00B204E9800998ECF8427E', 
-        'crc': 0
-    }
-    
-    # result.resp:
-    {
-        'response': <Response [200]>, 
-        'status': 200, 
-        'headers': {
-            'Server': 'AliyunOSS', 
-            'Date': 'Tue, 20 Oct 2020 02:31:03 GMT', 
-            'Content-Length': '0', 
-            'Connection': 'keep-alive', 
-            'x-oss-request-id': '5F8E4BE7FEC93130387B8D5B', 
-            'ETag': '"D41D8CD98F00B204E9800998ECF8427E"', 
-            'x-oss-hash-crc64ecma': '0', 
-            'Content-MD5': '1B2M2Y8AsgTpgAmY7PhCfg==', 
-            'x-oss-server-time': '49'
-        }, 
-        'request_id': '5F8E4BE7FEC93130387B8D5B', 
-        '_Response__all_read': True
-    }
-    
-    # result.resp.response:
-    {
-        '_content': False, 
-        '_content_consumed': True, 
-        '_next': None, 
-        'status_code': 200, 
-        'headers': {
-            'Server': 'AliyunOSS', 
-            'Date': 'Tue, 20 Oct 2020 02:32:13 GMT', 
-            'Content-Length': '0', 
-            'Connection': 'keep-alive', 
-            'x-oss-request-id': '5F8E4C2D4D5A2B3339F164B7', 
-            'ETag': '"D41D8CD98F00B204E9800998ECF8427E"', 
-            'x-oss-hash-crc64ecma': '0', 
-            'Content-MD5': '1B2M2Y8AsgTpgAmY7PhCfg==', 
-            'x-oss-server-time': '18'
-        }, 
-        'raw': <urllib3.response.HTTPResponse object at 0x104254a10>, 
-        'url': 'http://haier-mdcp-private.oss-cn-qingdao.aliyuncs.com/cmltest.fbx', 
-        'encoding': None, 
-        'history': [], 
-        'reason': 'OK', 
-        'cookies': <RequestsCookieJar[]>, 
-        'elapsed': datetime.timedelta(microseconds=250406), 
-        'request': <PreparedRequest [PUT]>, 
-        'connection': <requests.adapters.HTTPAdapter object at 0x1041fb710>
-    }
-    
-    """
-
-    # 下载
-    # res = oss_obj.download(remote_name)
-    # print(res)

@@ -1,50 +1,11 @@
-#!/usr/bin/python3.7+
-# -*- coding:utf-8 -*-
-"""
-@auth: cml
-@date: 2021/3/8
-@desc: ...
-
-AccessKeyId         OSSAccessKeyId
-file                file
-key                 key
-policy              policy
-signature           Signature
-x-obs-acl           x-oss-object-acl
-x-obs-grant-read
-x-obs-grant-read-acp
-x-obs-grant-write-acp
-x-obs-grant-full-control
-x-obs-storage-class
-x-obs-meta-*                                    x-oss-meta-*
-x-obs-website-redirect-location
-x-obs-server-side-encryption                    x-oss-server-side-encryption
-x-obs-server-side-encryption-kms-key-id         x-oss-server-side-encryption-key-id
-x-obs-server-side-encryption-customer-algorithm
-x-obs-server-side-encryption-customer-key
-x-obs-server-side-encryption-customer-key-MD5
-x-obs-expires
-success_action_redirect         success_action_redirect
-success_action_status           success_action_status
-                                x-oss-content-type
-token                           x-oss-security-token
-"""
 import os
 import json
-import hmac
 import base64
-import hashlib
 import datetime
-from importlib import import_module
 from abc import ABCMeta, abstractmethod
 from yzcore.utils.check_storage import create_temp_file
+from yzcore.extensions.storage.const import IMAGE_FORMAT_SET
 from yzcore.exceptions import StorageError
-
-IMAGE_FORMAT_SET = [
-    'bmp', 'jpg', 'jpeg', 'png', 'tif', 'gif', 'pcx', 'tga',
-    'exif', 'fpx', 'svg', 'psd', 'cdr', 'pcd', 'dxf', 'ufo',
-    'eps', 'ai', 'raw', 'WMF', 'webp', 'tiff'
-]
 
 
 class OssManagerError(ValueError):
@@ -216,18 +177,3 @@ class OssManagerBase(metaclass=ABCMeta):
     @abstractmethod
     def get_object_meta(self, key: str):
         """获取文件基本元信息，包括该Object的ETag、Size（文件大小）、LastModified，并不返回其内容"""
-
-
-class OssManagerProxy:
-    def __init__(self, oss_type, **kwargs):
-        # self.oss_type = oss_type
-        self.client = self.select_oss(oss_type, **kwargs)
-
-    def select_oss(self, oss_type, **kwargs):
-        _module = import_module(f"yzcore.extensions.oss.{oss_type}")
-        return _module.OssManager(**kwargs)
-
-    def __getattr__(self, item):
-        return getattr(self.client, item)
-
-
