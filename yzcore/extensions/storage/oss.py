@@ -120,6 +120,23 @@ class OssManager(OssManagerBase):
         )
         return self.bucket.create_bucket(permission, input=config)
 
+    def get_bucket_cors(self):
+        """获取存储桶的CORS配置"""
+        cors_dict = {
+            'allowed_origins': [],
+            'allowed_methods': [],
+            'allowed_headers': [],
+        }
+        try:
+            cors = self.bucket.get_bucket_cors()
+            for rule in cors.rules:
+                cors_dict['allowed_origins'] = rule.allowed_origins
+                cors_dict['allowed_headers'] = rule.allowed_headers
+                cors_dict['allowed_methods'] = rule.allowed_methods
+        except oss2.exceptions.NoSuchCors:
+            pass
+        return cors_dict
+
     def iter_buckets(self, prefix='', marker='', max_keys=100, max_retries=None):
         """
         :param prefix: 只列举匹配该前缀的Bucket
@@ -236,7 +253,7 @@ class OssManager(OssManagerBase):
             _result.append(obj_dict)
         return _result
 
-    def download(self, key, local_name=None, process=None, is_stream=False):
+    def download(self, key, local_name=None, is_stream=False, process=None):
         """
         下载oss文件
         :param key:

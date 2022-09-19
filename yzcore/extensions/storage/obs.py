@@ -229,7 +229,9 @@ class ObsManager(OssManagerBase):
         :return: 文件对象或文件下载后的本地路径
         """
         if is_stream:
-            return self.get_file_stream(key)
+            resp = self.obsClient.getObject(self.bucket_name, key, loadStreamInMemory=False)
+            # 获取对象内容
+            return resp.body.response
         else:
             if not local_name:
                 local_name = os.path.abspath(os.path.join(self.cache_path, key))
@@ -240,15 +242,6 @@ class ObsManager(OssManagerBase):
                 progressCallback=progress_callback
             )
             return local_name
-
-    def get_file_stream(self, key):
-
-        resp = self.obsClient.getObject(
-            self.bucket_name, key,
-            loadStreamInMemory=True,
-        )
-        # 获取对象内容
-        return resp.body.buffer
 
     def upload(self, filepath, key=None, **kwargs):
         """上传文件"""
@@ -330,3 +323,17 @@ class ObsManager(OssManagerBase):
         """获取文件基本元信息，包括该Object的ETag、Size（文件大小）、LastModified，并不返回其内容"""
         resp = self.obsClient.getObjectMetadata(self.bucket_name, key)
         return {'etag': resp.body.etag.strip('"').lower(), 'size': resp.body.contentLength, 'last_modified': resp.body.lastModified}
+
+    def get_bucket_cors(self):
+        cors_dict = {
+            'allowed_origins': [],
+            'allowed_methods': [],
+            'allowed_headers': [],
+        }
+        resp = self.obsClient.getBucketCors(self.bucket_name)
+        if resp.status < 300:
+            for rule in resp.body:
+                cors_dict['allowed_origins'] = rule.allowedOrigin
+                cors_dict['allowed_headers'] = rule.allowedHeader
+                cors_dict['allowed_methods'] = rule.allowedMethod
+        return cors_dict

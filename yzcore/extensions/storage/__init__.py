@@ -1,10 +1,13 @@
 from yzcore.extensions.storage.oss import OssManager
 from yzcore.extensions.storage.obs import ObsManager
+from yzcore.exceptions import StorageError
 from yzcore.extensions.storage.const import IMAGE_FORMAT_SET
 
 
 __all__ = [
-    'IMAGE_FORMAT_SET', 'StorageManage'
+    'IMAGE_FORMAT_SET',
+    'StorageManage',
+    'StorageError',
 ]
 
 

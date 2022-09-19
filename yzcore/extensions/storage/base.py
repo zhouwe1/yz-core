@@ -1,13 +1,11 @@
 import os
-import json
-import base64
-import datetime
 from abc import ABCMeta, abstractmethod
 from yzcore.utils.check_storage import create_temp_file
 from yzcore.extensions.storage.const import IMAGE_FORMAT_SET
 from yzcore.exceptions import StorageError
-import requests
-
+from urllib.request import urlopen
+from urllib.error import URLError
+from ssl import SSLCertVerificationError
 
 class OssManagerError(ValueError):
     """"""
@@ -51,6 +49,15 @@ class OssManagerBase(metaclass=ABCMeta):
         """创建bucket"""
 
     @abstractmethod
+    def get_bucket_cors(self):
+        """获取CORS配置"""
+        cors_dict = {
+            'allowed_origins': [],
+            'allowed_methods': [],
+            'allowed_headers': [],
+        }
+
+    @abstractmethod
     def list_buckets(self):
         """查询bucket列表"""
 
@@ -75,7 +82,7 @@ class OssManagerBase(metaclass=ABCMeta):
         """遍历存储桶内的文件"""
 
     @abstractmethod
-    def download(self, *args, **kwargs):
+    def download(self, key, local_name=None, is_stream=False, **kwargs):
         """下载文件"""
 
     @abstractmethod
@@ -136,40 +143,28 @@ class OssManagerBase(metaclass=ABCMeta):
         except OSError:
             pass
 
-    def check(self, headers_origin):
+    def check(self):
         """通过上传和下载检查对象存储配置是否正确"""
         try:
-            assert self.is_exist_bucket(), 'No Such Bucket'
+            # 检查bucket是否正确
+            assert self.is_exist_bucket(), f'{self.bucket_name}: No Such Bucket'
+            # CORS 检查
+            assert self._cors_check(), f'{self.bucket_name}: CORS设置错误'
 
-            verify = False
-            # 生成一个内存文件
+            # 生成一个带有随机字符串的内存文件
             temp_file = create_temp_file(text_length=32)
             text = temp_file.getvalue().decode()
 
             key = f'storage_check_{text}.txt'
             # 上传
             file_url = self.upload(temp_file, key=key)
-            assert file_url, 'Upload Failed'
-
-            # 加签url测试
-            sign_url = self.get_sign_url(key=key, expire=10)
-            resp = requests.get('https:' + sign_url)
-            assert resp.status_code == 200, 'Sign Url Error'
-
-            # CORS 测试
-            cors_error_msg = self._cors_test(file_url, headers_origin)
-            assert not cors_error_msg, cors_error_msg
-
+            assert file_url, f'{self.bucket_name}: Upload Failed'
+            # 加签url
+            assert self._check_sign_url(key), f'{self.bucket_name}: Sign Url Error'
             # 下载
-            download_file = self.download(key=f'storage_check_{text}.txt')
-            assert download_file, 'DownloadFailed'
-
-            with open(download_file, 'rb') as f:
-                if text == f.read().decode():
-                    verify = True
-            os.remove(download_file)
-            if not verify:
-                raise StorageError('对象存储配置校验未通过，请检查配置')
+            download_file = self.download(key=f'storage_check_{text}.txt', is_stream=True)
+            download_text = download_file.read().decode()
+            assert download_text == text, f'{self.bucket_name}: DownloadFailed'
             return True
         except AssertionError as e:
             raise StorageError(e)
@@ -178,27 +173,32 @@ class OssManagerBase(metaclass=ABCMeta):
     def get_object_meta(self, key: str):
         """获取文件基本元信息，包括该Object的ETag、Size（文件大小）、LastModified，并不返回其内容"""
 
-    @staticmethod
-    def _cors_test(url: str, headers_origin: str):
+    def _cors_check(self):
         """
         检查对象存储的跨域请求是否设置正确
-        :param headers_origin: headers中的Origin Url
         :return: 错误信息
         """
-        methods = ['GET', 'POST', 'PUT']
-        error = []
-        for method in methods:
-            try:
-                resp = requests.options(
-                    'https:' + url,
-                    headers={'Origin': headers_origin, 'Access-Control-Request-Method': method}
-                )
-                if resp.status_code >= 300 or resp.status_code < 200:
-                    error.append(method)
-            except:
-                error.append(method)
+        allowed_methods = {'GET', 'PUT', 'POST', 'DELETE', 'HEAD'}
+        cors_dict = self.get_bucket_cors()
+        if set(cors_dict['allowed_methods']) != allowed_methods:
+            raise StorageError('CORS设置错误')
 
-        if error:
-            return 'CORS need:' + ','.join(error)
-        else:
-            return ''
+        if cors_dict['allowed_headers'] != ['*']:
+            raise StorageError('CORS设置错误')
+
+        if cors_dict['allowed_origins'] != ['*']:
+            raise StorageError('CORS设置错误')
+
+        return True
+
+    def _check_sign_url(self, key):
+        """打开加签url"""
+        try:
+            sign_url = self.get_sign_url(key=key, expire=600)
+            resp = urlopen('https:' + sign_url)
+            assert resp.status < 300, f'{self.bucket_name}: Sign Url Error, {sign_url}'
+        except URLError as e:
+            if isinstance(e.reason, SSLCertVerificationError):
+                raise StorageError(f'未开启https: {self.bucket_name}')
+            raise StorageError(f'{self.bucket_name}: Sign Url Error')
+        return True
