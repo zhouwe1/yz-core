@@ -267,7 +267,7 @@ class ObsManager(OssManagerBase):
 
         if resp.status > 200:
             msg = resp.errorMessage
-            raise StorageError(f'obs error: {msg}')
+            raise StorageError(f'obs upload error: {msg}')
 
         # 返回下载链接
         if not any((self.image_domain, self.asset_domain)):

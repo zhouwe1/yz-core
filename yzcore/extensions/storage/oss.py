@@ -27,6 +27,7 @@ import datetime
 import hashlib
 from urllib import parse
 from yzcore.extensions.storage.base import OssManagerBase
+from yzcore.exceptions import StorageError
 
 try:
     import oss2
@@ -270,14 +271,16 @@ class OssManager(OssManagerBase):
             headers = None
             if filepath.endswith(".dds"):
                 headers = {"Content-Type": "application/octet-stream"}
-            oss2.resumable_upload(
+            result = oss2.resumable_upload(
                 self.bucket, key, filepath,
                 headers=headers,
                 num_threads=num_threads,
                 multipart_threshold=multipart_threshold,
             )
         else:
-            self.bucket.put_object(key, filepath)
+            result = self.bucket.put_object(key, filepath)
+        if result.status != 200:
+            raise StorageError(f'oss upload error: {result.resp}')
         # 返回下载链接
         return self.get_file_url(filepath, key)
 

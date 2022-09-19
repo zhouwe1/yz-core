@@ -6,6 +6,7 @@ from abc import ABCMeta, abstractmethod
 from yzcore.utils.check_storage import create_temp_file
 from yzcore.extensions.storage.const import IMAGE_FORMAT_SET
 from yzcore.exceptions import StorageError
+import requests
 
 
 class OssManagerError(ValueError):
@@ -81,26 +82,6 @@ class OssManagerBase(metaclass=ABCMeta):
     def upload(self, *args, **kwargs):
         """"""
 
-    def _get_policy_encode(self, key, redirect_url):
-        expire_time = datetime.datetime.now() + datetime.timedelta(
-            seconds=self.policy_expire_time
-        )
-        policy_dict = dict(
-            expiration=expire_time.isoformat() + "Z",
-            conditions=[
-                # {"acl": "public-read"},
-                # {"x-obs-acl": "public-read"},
-                # {"x-obs-security-token": "YwkaRTbdY8g7q...."},
-                {"bucket": "yzcore"},
-                {"success_action_redirect": redirect_url},
-                ["starts-with", "$key", key],                         # 指定值开始
-                # ["eq", "$success_action_redirect", "public-read"],  # 精确匹配
-                # ["content-length-range", 1, 1024*1024*1024]         # 对象大小限制
-            ],
-        )
-        policy = json.dumps(policy_dict).strip().encode()
-        return base64.b64encode(policy)
-
     @abstractmethod
     def get_policy(
             self,
@@ -155,25 +136,69 @@ class OssManagerBase(metaclass=ABCMeta):
         except OSError:
             pass
 
-    def check(self):
+    def check(self, headers_origin):
         """通过上传和下载检查对象存储配置是否正确"""
-        verify = False
-        # 生成一个内存文件
-        temp_file = create_temp_file(text_length=32)
-        text = temp_file.getvalue().decode()
-        # 上传
-        self.upload(temp_file, key=f'storage_check_{text}.txt')
-        # 下载
-        download_file = self.download(key=f'storage_check_{text}.txt')
+        try:
+            assert self.is_exist_bucket(), 'No Such Bucket'
 
-        with open(download_file, 'rb') as f:
-            if text == f.read().decode():
-                verify = True
-        os.remove(download_file)
-        if not verify:
-            raise StorageError('对象存储配置校验未通过，请检查配置')
-        return True
+            verify = False
+            # 生成一个内存文件
+            temp_file = create_temp_file(text_length=32)
+            text = temp_file.getvalue().decode()
+
+            key = f'storage_check_{text}.txt'
+            # 上传
+            file_url = self.upload(temp_file, key=key)
+            assert file_url, 'Upload Failed'
+
+            # 加签url测试
+            sign_url = self.get_sign_url(key=key, expire=10)
+            resp = requests.get('https:' + sign_url)
+            assert resp.status_code == 200, 'Sign Url Error'
+
+            # CORS 测试
+            cors_error_msg = self._cors_test(file_url, headers_origin)
+            assert not cors_error_msg, cors_error_msg
+
+            # 下载
+            download_file = self.download(key=f'storage_check_{text}.txt')
+            assert download_file, 'DownloadFailed'
+
+            with open(download_file, 'rb') as f:
+                if text == f.read().decode():
+                    verify = True
+            os.remove(download_file)
+            if not verify:
+                raise StorageError('对象存储配置校验未通过，请检查配置')
+            return True
+        except AssertionError as e:
+            raise StorageError(e)
 
     @abstractmethod
     def get_object_meta(self, key: str):
         """获取文件基本元信息，包括该Object的ETag、Size（文件大小）、LastModified，并不返回其内容"""
+
+    @staticmethod
+    def _cors_test(url: str, headers_origin: str):
+        """
+        检查对象存储的跨域请求是否设置正确
+        :param headers_origin: headers中的Origin Url
+        :return: 错误信息
+        """
+        methods = ['GET', 'POST', 'PUT']
+        error = []
+        for method in methods:
+            try:
+                resp = requests.options(
+                    'https:' + url,
+                    headers={'Origin': headers_origin, 'Access-Control-Request-Method': method}
+                )
+                if resp.status_code >= 300 or resp.status_code < 200:
+                    error.append(method)
+            except:
+                error.append(method)
+
+        if error:
+            return 'CORS need:' + ','.join(error)
+        else:
+            return ''
