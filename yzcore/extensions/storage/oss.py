@@ -4,18 +4,6 @@
 @auth: cml
 @date: 2020-10-20
 @desc: 对阿里云oss的封装，依赖oss2
-
-配置文件：
-    [oss_manager]
-    access_key_id = XXXXX
-    access_key_secret = XXXXX
-    endpoint = oss-cn-shenzhen.aliyuncs.com
-    # internal_endpoint = oss-cn-shenzhen-internal.aliyuncs.com
-    bucket_name = bucket_name
-    image_domain = internal.image.realibox.com
-    asset_domain = internal.asset.realibox.com
-    expire_time = 30
-    cache_path = /tmp/xxxx/cache/
 """
 
 import os
@@ -26,7 +14,7 @@ import hmac
 import datetime
 import hashlib
 from urllib import parse
-from yzcore.extensions.storage.base import OssManagerBase
+from yzcore.extensions.storage.base import StorageManagerBase
 from yzcore.exceptions import StorageError
 
 try:
@@ -35,7 +23,7 @@ except:
     oss2 = None
 
 
-class OssManager(OssManagerBase):
+class OssManager(StorageManagerBase):
     """
     使用示例:
         >>> oss_conf = dict(
@@ -381,7 +369,11 @@ class OssManager(OssManagerBase):
     def get_object_meta(self, key: str):
         """获取文件基本元信息，包括该Object的ETag、Size（文件大小）、LastModified，并不返回其内容"""
         meta = self.bucket.get_object_meta(key)
-        return {'etag': meta.etag.lower(), 'size': meta.content_length, 'last_modified': meta.headers['Last-Modified']}
+        return {
+            'etag': meta.etag.lower(),
+            'size': meta.content_length,
+            'last_modified': meta.headers['Last-Modified'],
+        }
 
 
 def make_dir(dir_path):

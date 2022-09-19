@@ -7,15 +7,8 @@ from urllib.request import urlopen
 from urllib.error import URLError
 from ssl import SSLCertVerificationError
 
-class OssManagerError(ValueError):
-    """"""
 
-
-class OssRequestError(Exception):
-    """"""
-
-
-class OssManagerBase(metaclass=ABCMeta):
+class StorageManagerBase(metaclass=ABCMeta):
     def __init__(
             self,
             access_key_id,
@@ -50,12 +43,14 @@ class OssManagerBase(metaclass=ABCMeta):
 
     @abstractmethod
     def get_bucket_cors(self):
-        """获取CORS配置"""
-        cors_dict = {
+        """
+        获取CORS配置
+        :return: {
             'allowed_origins': [],
             'allowed_methods': [],
             'allowed_headers': [],
         }
+        """
 
     @abstractmethod
     def list_buckets(self):
@@ -136,7 +131,8 @@ class OssManagerBase(metaclass=ABCMeta):
         else:
             return None
 
-    def make_dir(self, dir_path):
+    @staticmethod
+    def make_dir(dir_path):
         """新建目录"""
         try:
             os.makedirs(dir_path)
@@ -174,31 +170,29 @@ class OssManagerBase(metaclass=ABCMeta):
         """获取文件基本元信息，包括该Object的ETag、Size（文件大小）、LastModified，并不返回其内容"""
 
     def _cors_check(self):
-        """
-        检查对象存储的跨域请求是否设置正确
-        :return: 错误信息
-        """
+        """检查存储桶的CORS配置是否设置正确"""
         allowed_methods = {'GET', 'PUT', 'POST', 'DELETE', 'HEAD'}
         cors_dict = self.get_bucket_cors()
         if set(cors_dict['allowed_methods']) != allowed_methods:
             raise StorageError('CORS设置错误')
-
         if cors_dict['allowed_headers'] != ['*']:
             raise StorageError('CORS设置错误')
-
         if cors_dict['allowed_origins'] != ['*']:
             raise StorageError('CORS设置错误')
-
         return True
 
     def _check_sign_url(self, key):
-        """打开加签url"""
+        """判断加签url是否可以正常打开，并且配置了https"""
         try:
             sign_url = self.get_sign_url(key=key, expire=600)
             resp = urlopen('https:' + sign_url)
             assert resp.status < 300, f'{self.bucket_name}: Sign Url Error, {sign_url}'
         except URLError as e:
             if isinstance(e.reason, SSLCertVerificationError):
-                raise StorageError(f'未开启https: {self.bucket_name}')
+                raise StorageError(f'{self.bucket_name}: 未开启https')
             raise StorageError(f'{self.bucket_name}: Sign Url Error')
         return True
+
+
+class StorageRequestError(Exception):
+    """请求对象存储服务时遇到的异常"""

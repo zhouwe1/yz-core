@@ -9,7 +9,7 @@ import base64
 import json
 import os
 import functools
-from yzcore.extensions.storage.base import OssManagerBase, OssRequestError
+from yzcore.extensions.storage.base import StorageManagerBase, StorageRequestError
 from yzcore.exceptions import StorageError
 
 try:
@@ -111,7 +111,7 @@ class ObsClient(_ObsClient):
         return client._CreatePostSignatureResponse(**result)
 
 
-class ObsManager(OssManagerBase):
+class ObsManager(StorageManagerBase):
     acl_type = {
         "private": obs.HeadPermission.PRIVATE,
         "onlyread": obs.HeadPermission.PUBLIC_READ,
@@ -141,9 +141,8 @@ class ObsManager(OssManagerBase):
     def __init(self, *args, **kwargs):
         """"""
         if obs is None:
-            raise ImportError("'esdk-obs-python' must be installed to use OssManager")
+            raise ImportError("'esdk-obs-python' must be installed to use ObsManager")
         # 创建ObsClient实例
-
         self.endpoint = self.cname if self.cname else self.endpoint
         is_cname = True if self.cname else False
 
@@ -164,7 +163,7 @@ class ObsManager(OssManagerBase):
         if resp.status < 300:
             return True
         else:
-            raise OssRequestError(
+            raise StorageRequestError(
                 f"errorCode: {resp.errorCode}. Message: {resp.errorMessage}.")
 
     def list_buckets(self):
@@ -172,7 +171,7 @@ class ObsManager(OssManagerBase):
         if resp.status < 300:
             return resp.body.buckets
         else:
-            raise OssRequestError(
+            raise StorageRequestError(
                 f"errorCode: {resp.errorCode}. Message: {resp.errorMessage}.")
 
     @wrap_request_return_bool
@@ -322,7 +321,11 @@ class ObsManager(OssManagerBase):
     def get_object_meta(self, key: str):
         """获取文件基本元信息，包括该Object的ETag、Size（文件大小）、LastModified，并不返回其内容"""
         resp = self.obsClient.getObjectMetadata(self.bucket_name, key)
-        return {'etag': resp.body.etag.strip('"').lower(), 'size': resp.body.contentLength, 'last_modified': resp.body.lastModified}
+        return {
+            'etag': resp.body.etag.strip('"').lower(),
+            'size': resp.body.contentLength,
+            'last_modified': resp.body.lastModified,
+        }
 
     def get_bucket_cors(self):
         cors_dict = {
