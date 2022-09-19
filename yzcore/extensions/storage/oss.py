@@ -7,7 +7,6 @@
 """
 
 import os
-import shutil
 import json
 import base64
 import hmac
@@ -237,7 +236,7 @@ class OssManager(StorageManagerBase):
             obj_dict = obj.__dict__
             obj_dict.pop('last_modified', '')
             obj_dict.pop('owner', '')
-            obj_dict['url'] = self.get_file_url(obj.key, obj.key)
+            obj_dict['url'] = self.get_file_url(key=obj.key)
             _result.append(obj_dict)
         return _result
 
@@ -263,7 +262,7 @@ class OssManager(StorageManagerBase):
         else:
             if not local_name:
                 local_name = os.path.abspath(os.path.join(self.cache_path, key))
-            make_dir(os.path.dirname(local_name))
+            self.make_dir(os.path.dirname(local_name))
             self.bucket.get_object_to_file(key, local_name, process=process)
             return local_name
 
@@ -287,7 +286,7 @@ class OssManager(StorageManagerBase):
         if result.status != 200:
             raise StorageError(f'oss upload error: {result.resp}')
         # 返回下载链接
-        return self.get_file_url(filepath, key)
+        return self.get_file_url(key)
 
     def get_policy(
             self,
@@ -374,18 +373,3 @@ class OssManager(StorageManagerBase):
             'size': meta.content_length,
             'last_modified': meta.headers['Last-Modified'],
         }
-
-
-def make_dir(dir_path):
-    """新建目录"""
-    try:
-        os.makedirs(dir_path)
-    except OSError:
-        pass
-
-
-def copy_file(src, dst):
-    """拷贝文件"""
-    dst_dir = os.path.dirname(dst)
-    make_dir(dst_dir)
-    shutil.copy(src, dst)

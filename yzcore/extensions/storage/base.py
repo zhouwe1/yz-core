@@ -1,6 +1,7 @@
 import os
+import shutil
 from abc import ABCMeta, abstractmethod
-from yzcore.utils.check_storage import create_temp_file
+from yzcore.extensions.storage.utils import create_temp_file
 from yzcore.extensions.storage.const import IMAGE_FORMAT_SET
 from yzcore.exceptions import StorageError
 from urllib.request import urlopen
@@ -103,12 +104,10 @@ class StorageManagerBase(metaclass=ABCMeta):
         :return:
         """
 
-    def get_file_url(self, filepath=None, key=''):
-        if not isinstance(filepath, str):
-            filepath = key
+    def get_file_url(self, key):
         if not any((self.image_domain, self.asset_domain)):
             resource_url = u"//{}.{}/{}".format(self.bucket_name, self.endpoint, key).replace("-internal", "")
-        elif filepath.split('.')[-1].lower() in IMAGE_FORMAT_SET:
+        elif key.split('.')[-1].lower() in IMAGE_FORMAT_SET:
             resource_url = u"//{domain}/{key}".format(
                 domain=self.image_domain, key=key)
         else:
@@ -131,13 +130,20 @@ class StorageManagerBase(metaclass=ABCMeta):
         else:
             return None
 
-    @staticmethod
-    def make_dir(dir_path):
+    @classmethod
+    def make_dir(cls, dir_path):
         """新建目录"""
         try:
             os.makedirs(dir_path)
         except OSError:
             pass
+
+    @classmethod
+    def copy_file(cls, src, dst):
+        """拷贝文件"""
+        dst_dir = os.path.dirname(dst)
+        cls.make_dir(dst_dir)
+        shutil.copy(src, dst)
 
     def check(self):
         """通过上传和下载检查对象存储配置是否正确"""

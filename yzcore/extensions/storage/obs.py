@@ -8,8 +8,9 @@
 import base64
 import json
 import os
-import functools
+
 from yzcore.extensions.storage.base import StorageManagerBase, StorageRequestError
+from yzcore.extensions.storage.utils import wrap_request_return_bool
 from yzcore.exceptions import StorageError
 
 try:
@@ -17,24 +18,6 @@ try:
     from obs import ObsClient as _ObsClient, const, util, client, SetObjectMetadataHeader
 except:
     obs = None
-
-
-def wrap_request_return_bool(func):
-    """"""
-
-    @functools.wraps(func)
-    def wrap_func(*args, **kwargs):
-        try:
-            resp = func(*args, **kwargs)
-            if resp.status < 300:
-                return True
-            else:
-                return False
-        except:
-            import traceback
-            print(traceback.format_exc())
-
-    return wrap_func
 
 
 class ObsClient(_ObsClient):
@@ -212,7 +195,7 @@ class ObsManager(StorageManagerBase):
         resp = self.obsClient.listObjects(self.bucket_name, prefix=prefix, marker=marker, delimiter=delimiter,
                                           max_keys=max_keys)
         for obj in resp.body.contents:
-            obj['url'] = self.get_file_url(obj['key'], obj['key'])
+            obj['url'] = self.get_file_url(key=obj['key'])
             obj.pop('lastModified', '')
             obj.pop('owner', '')
             _result.append(obj)
@@ -265,7 +248,7 @@ class ObsManager(StorageManagerBase):
         if not any((self.image_domain, self.asset_domain)):
             return '//{}.{}/{}'.format(self.bucket_name, self.endpoint, key)
         else:
-            return self.get_file_url(filepath, key)
+            return self.get_file_url(key)
 
     def get_policy(
             self,
