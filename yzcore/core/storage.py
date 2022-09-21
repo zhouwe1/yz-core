@@ -17,10 +17,10 @@ class StorageController(metaclass=ABCMeta):
     >>> storage_ctrl.storage_conf  # 组织自定义对象存储配置或全局配置
     >>> storage_ctrl.public_storage_manage  # 非加密存储控制器
     >>> storage_ctrl.private_storage_manage  # 加密存储控制器
-    >>> storage_ctrl.global_public_storage_manage  # 全局非加密存储控制器
-    >>> storage_ctrl.global_private_storage_manage  # 全局加密存储控制器
     全局对象存储
     >>> global_storage_manage = await StorageController.init()
+    >>> global_storage_manage.public_storage_manage  # 全局非加密存储控制器
+    >>> global_storage_manage.private_storage_manage  # 全局加密存储控制器
     """
 
     def __init__(self, organiz_id):
@@ -38,7 +38,14 @@ class StorageController(metaclass=ABCMeta):
         organiz_id为空的情况下返回全局的对象存储
         因在 __init__ 方法中不能调用异步方法，需要在这里初始化"""
         storage_ctrl = cls(organiz_id)
-        storage_ctrl.organiz_storage_conf = await storage_ctrl._get_organiz_storage_conf()
+        # 获取组织自定义对象存储配置
+        if organiz_id:
+            organiz_storage_conf = await storage_ctrl._get_organiz_storage_conf()
+            if organiz_storage_conf:
+                # 覆盖回全局对象存储配置，避免丢失全局配置
+                _storage_conf = cls.global_storage_conf().copy()
+                _storage_conf.update(organiz_storage_conf)
+                storage_ctrl.organiz_storage_conf = _storage_conf
         storage_ctrl.storage_conf = storage_ctrl.organiz_storage_conf or cls.global_storage_conf()
         storage_ctrl.storage_mode = storage_ctrl.storage_conf['mode']
         return storage_ctrl
@@ -48,7 +55,7 @@ class StorageController(metaclass=ABCMeta):
         """
         获取组织的自定义对象存储配置
         并将获取到的组织自定义对象存储配置覆盖到全局配置上，继承一些基础的配置
-        :return: dict: org_storage_conf or {}
+        :return: dict(**organiz_storage_conf) or None
         """
 
     @classmethod
@@ -59,16 +66,12 @@ class StorageController(metaclass=ABCMeta):
     @property
     def public_storage_manage(self):
         """非加密存储桶控制器"""
-        if self.organiz_storage_conf:
-            return self._init_public_storage_manage(self.organiz_storage_conf)
-        return self.global_public_storage_manage
+        return self._init_public_storage_manage(self.storage_conf)
 
     @property
     def private_storage_manage(self):
         """加密存储桶控制器"""
-        if self.organiz_storage_conf:
-            return self._init_private_storage_manage(self.organiz_storage_conf)
-        return self.global_private_storage_manage
+        return self._init_private_storage_manage(self.storage_conf)
 
     @classmethod
     async def check_organiz_conf(cls, organiz_conf: dict):
@@ -77,14 +80,6 @@ class StorageController(metaclass=ABCMeta):
         private_storage = cls._init_private_storage_manage(organiz_conf)
         public_storage.check()
         private_storage.check()
-
-    @property
-    def global_public_storage_manage(self):
-        return self._init_public_storage_manage(self.global_storage_conf())
-
-    @property
-    def global_private_storage_manage(self):
-        return self._init_private_storage_manage(self.global_storage_conf())
 
     @classmethod
     def _init_public_storage_manage(cls, storage_conf: dict):
