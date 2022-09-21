@@ -3,10 +3,13 @@ import shutil
 from abc import ABCMeta, abstractmethod
 from yzcore.extensions.storage.utils import create_temp_file
 from yzcore.extensions.storage.const import IMAGE_FORMAT_SET
-from yzcore.exceptions import StorageError
 from urllib.request import urlopen
 from urllib.error import URLError
 from ssl import SSLCertVerificationError
+
+
+class StorageRequestError(Exception):
+    """请求外部对象存储服务时遇到的错误或异常"""
 
 
 class StorageManagerBase(metaclass=ABCMeta):
@@ -76,6 +79,10 @@ class StorageManagerBase(metaclass=ABCMeta):
     @abstractmethod
     def iter_objects(self, prefix='', marker=None, delimiter=None, max_keys=100):
         """遍历存储桶内的文件"""
+
+    @abstractmethod
+    def get_object_meta(self, key: str):
+        """获取文件基本元信息，包括该Object的ETag、Size（文件大小）、LastModified，并不返回其内容"""
 
     @abstractmethod
     def download(self, key, local_name=None, is_stream=False, **kwargs):
@@ -169,22 +176,18 @@ class StorageManagerBase(metaclass=ABCMeta):
             assert download_text == text, f'{self.bucket_name}: DownloadFailed'
             return True
         except AssertionError as e:
-            raise StorageError(e)
-
-    @abstractmethod
-    def get_object_meta(self, key: str):
-        """获取文件基本元信息，包括该Object的ETag、Size（文件大小）、LastModified，并不返回其内容"""
+            raise StorageRequestError(e)
 
     def _cors_check(self):
         """检查存储桶的CORS配置是否设置正确"""
         allowed_methods = {'GET', 'PUT', 'POST', 'DELETE', 'HEAD'}
         cors_dict = self.get_bucket_cors()
         if set(cors_dict['allowed_methods']) != allowed_methods:
-            raise StorageError('CORS设置错误')
+            raise StorageRequestError(f'{self.bucket_name}: CORS设置错误')
         if cors_dict['allowed_headers'] != ['*']:
-            raise StorageError('CORS设置错误')
+            raise StorageRequestError(f'{self.bucket_name}: CORS设置错误')
         if cors_dict['allowed_origins'] != ['*']:
-            raise StorageError('CORS设置错误')
+            raise StorageRequestError(f'{self.bucket_name}: CORS设置错误')
         return True
 
     def _check_sign_url(self, key):
@@ -195,10 +198,6 @@ class StorageManagerBase(metaclass=ABCMeta):
             assert resp.status < 300, f'{self.bucket_name}: Sign Url Error, {sign_url}'
         except URLError as e:
             if isinstance(e.reason, SSLCertVerificationError):
-                raise StorageError(f'{self.bucket_name}: 未开启https')
-            raise StorageError(f'{self.bucket_name}: Sign Url Error')
+                raise StorageRequestError(f'{self.bucket_name}: 未开启https')
+            raise StorageRequestError(f'{self.bucket_name}: Sign Url Error')
         return True
-
-
-class StorageRequestError(Exception):
-    """请求对象存储服务时遇到的异常"""

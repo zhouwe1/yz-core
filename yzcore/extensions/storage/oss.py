@@ -13,8 +13,7 @@ import hmac
 import datetime
 import hashlib
 from urllib import parse
-from yzcore.extensions.storage.base import StorageManagerBase
-from yzcore.exceptions import StorageError
+from yzcore.extensions.storage.base import StorageManagerBase, StorageRequestError
 
 try:
     import oss2
@@ -284,7 +283,7 @@ class OssManager(StorageManagerBase):
         else:
             result = self.bucket.put_object(key, filepath)
         if result.status != 200:
-            raise StorageError(f'oss upload error: {result.resp}')
+            raise StorageRequestError(f'oss upload error: {result.resp}')
         # 返回下载链接
         return self.get_file_url(key)
 

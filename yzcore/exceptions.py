@@ -61,11 +61,5 @@ class UnknownError(HTTPException):
         super().__init__(status_code=500, detail=detail, headers=headers)
 
 
-class StorageError(HTTPException):
-
-    def __init__(self, detail: Any = 'Storage error', headers: dict = None):
-        super().__init__(status_code=400, detail=detail, headers=headers)
-
-
 if __name__ == '__main__':
     pass

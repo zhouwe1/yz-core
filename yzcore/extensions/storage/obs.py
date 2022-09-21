@@ -11,7 +11,6 @@ import os
 
 from yzcore.extensions.storage.base import StorageManagerBase, StorageRequestError
 from yzcore.extensions.storage.utils import wrap_request_return_bool
-from yzcore.exceptions import StorageError
 
 try:
     import obs
@@ -242,7 +241,7 @@ class ObsManager(StorageManagerBase):
 
         if resp.status > 200:
             msg = resp.errorMessage
-            raise StorageError(f'obs upload error: {msg}')
+            raise StorageRequestError(f'obs upload error: {msg}')
 
         # 返回下载链接
         if not any((self.image_domain, self.asset_domain)):
