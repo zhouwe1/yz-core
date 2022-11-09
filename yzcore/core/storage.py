@@ -54,7 +54,6 @@ class StorageController(metaclass=ABCMeta):
     async def _get_organiz_storage_conf(self):
         """
         获取组织的自定义对象存储配置
-        并将获取到的组织自定义对象存储配置覆盖到全局配置上，继承一些基础的配置
         :return: dict(**organiz_storage_conf) or None
         """
 
