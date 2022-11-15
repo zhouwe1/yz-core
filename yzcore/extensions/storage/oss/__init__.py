@@ -203,8 +203,11 @@ class OssManager(StorageManagerBase):
         url = self.bucket.sign_url("GET", key, expire or self.private_expire_time)
         return '//' + url.split('//', 1)[-1]
 
-    def post_sign_url(self, key, expire=10):
-        return self.bucket.sign_url("POST", key, expire)
+    def post_sign_url(self, key):
+        pass
+
+    def put_sign_url(self, key):
+        return self.bucket.sign_url("PUT", key, self.policy_expire_time)
 
     def delete_cache_file(self, filename):
         """删除文件缓存"""
@@ -232,11 +235,11 @@ class OssManager(StorageManagerBase):
         """
         _result = []
         for obj in oss2.ObjectIterator(self.bucket, prefix=prefix, marker=marker, delimiter=delimiter, max_keys=max_keys):
-            obj_dict = obj.__dict__
-            obj_dict.pop('last_modified', '')
-            obj_dict.pop('owner', '')
-            obj_dict['url'] = self.get_file_url(key=obj.key)
-            _result.append(obj_dict)
+            _result.append({
+                'key': obj.key,
+                'url': self.get_file_url(key=obj.key),
+                'size': obj.size,
+            })
         return _result
 
     def download(self, key, local_name=None, is_stream=False, process=None):

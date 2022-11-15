@@ -135,6 +135,12 @@ class ObsManager(StorageManagerBase):
             is_cname=is_cname,
         )
 
+        if self.cache_path:
+            try:
+                os.makedirs(self.cache_path)
+            except OSError:
+                pass
+
     def create_bucket(
             self, bucket_name=None, location='cn-south-1'
     ):
@@ -172,14 +178,14 @@ class ObsManager(StorageManagerBase):
         res = self.obsClient.createSignedUrl("GET", self.bucket_name, objectKey=key, expires=expire or self.private_expire_time)
         return '//' + res.signedUrl.split('//', 1)[-1]
 
-    def post_sign_url(self, key, expire=10, form_param=None):
-        if form_param:
-            return self.obsClient.createPostSignature(
-                self.bucket_name, objectKey=key, expires=expire, formParams=form_param)
-        else:
-            res = self.obsClient.createSignedUrl(
-                "PUT", self.bucket_name, objectKey=key, expires=expire)
-            return res.signedUrl
+    def post_sign_url(self, key, form_param=None):
+        return self.obsClient.createPostSignature(
+            self.bucket_name, objectKey=key, expires=self.policy_expire_time, formParams=form_param)
+
+    def put_sign_url(self, key):
+        res = self.obsClient.createSignedUrl(
+            "PUT", self.bucket_name, objectKey=key, expires=self.policy_expire_time)
+        return res.signedUrl
 
     def iter_objects(self, prefix='', marker=None, delimiter=None, max_keys=100):
         """
@@ -282,7 +288,7 @@ class ObsManager(StorageManagerBase):
             'body-type': callback_content_type,
             'success_action_status': '200',
         }
-        res = self.post_sign_url(key=None, expire=self.policy_expire_time, form_param=form_param)
+        res = self.post_sign_url(key=None, form_param=form_param)
 
         data = dict(
             mode='obs',
@@ -298,7 +304,7 @@ class ObsManager(StorageManagerBase):
         # 兼容 oss.update_file_headers
         obs_headers = SetObjectMetadataHeader()
         obs_headers.contentType = headers.get('Content-Type')  # oss 和 obs的参数名称不相同
-        self.obsClient.setObjectMetadata(self.bucket_name, key, headers)
+        self.obsClient.setObjectMetadata(self.bucket_name, key, obs_headers)
 
     def get_object_meta(self, key: str):
         """获取文件基本元信息，包括该Object的ETag、Size（文件大小）、LastModified，并不返回其内容"""

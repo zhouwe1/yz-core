@@ -42,7 +42,7 @@ class StorageManagerBase(metaclass=ABCMeta):
         self.bucket = None
 
     @abstractmethod
-    def create_bucket(self):
+    def create_bucket(self, bucket_name):
         """创建bucket"""
 
     @abstractmethod
@@ -69,20 +69,36 @@ class StorageManagerBase(metaclass=ABCMeta):
         """删除bucket"""
 
     @abstractmethod
-    def get_sign_url(self, key, expire=10):
+    def get_sign_url(self, key, expire=0):
         """生成下载对象的带授权信息的URL"""
 
     @abstractmethod
-    def post_sign_url(self, key, expire=10):
-        """生成上传对象的带授权信息的URL"""
+    def post_sign_url(self, key):
+        """生成POST上传对象的授权信息"""
+
+    @abstractmethod
+    def put_sign_url(self, key):
+        """生成PUT上传对象的带授权信息的URL"""
 
     @abstractmethod
     def iter_objects(self, prefix='', marker=None, delimiter=None, max_keys=100):
-        """遍历存储桶内的文件"""
+        """
+        遍历存储桶内的文件
+        目前返回的字段：
+            [{
+                'key': '',
+                'url: '',
+                'size': '',
+            }]
+        """
 
     @abstractmethod
     def get_object_meta(self, key: str):
         """获取文件基本元信息，包括该Object的ETag、Size（文件大小）、LastModified，并不返回其内容"""
+
+    @abstractmethod
+    def update_file_headers(self, key, headers: dict):
+        """更改Object的元数据信息，包括Content-Type这类标准的HTTP头部"""
 
     @abstractmethod
     def download(self, key, local_name=None, is_stream=False, **kwargs):
@@ -113,7 +129,10 @@ class StorageManagerBase(metaclass=ABCMeta):
 
     def get_file_url(self, key):
         if not any((self.image_domain, self.asset_domain)):
-            resource_url = u"//{}.{}/{}".format(self.bucket_name, self.endpoint, key).replace("-internal", "")
+            if self.mode == 'minio':
+                resource_url = u"//{}/{}/{}".format(self.endpoint, self.bucket_name, key)
+            else:
+                resource_url = u"//{}.{}/{}".format(self.bucket_name, self.endpoint, key).replace("-internal", "")
         elif key.split('.')[-1].lower() in IMAGE_FORMAT_SET:
             resource_url = u"//{domain}/{key}".format(
                 domain=self.image_domain, key=key)
