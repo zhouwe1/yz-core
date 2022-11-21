@@ -84,7 +84,6 @@ class OssManager(StorageManagerBase):
                 os.makedirs(self.cache_path)
             except OSError:
                 pass
-            # make_dir(self.cache_path)
 
     def reload_oss(self, **kwargs):
         """重新加载oss配置"""
@@ -98,13 +97,15 @@ class OssManager(StorageManagerBase):
                       acl_type='private',
                       storage_type='standard',
                       redundancy_type='zrs'):
-        self.__init(bucket_name=bucket_name)
+        """创建bucket，并且作为当前操作bucket"""
         permission = self.acl_type.get(acl_type)
         config = oss2.models.BucketCreateConfig(
             storage_class=self.storage_cls.get(storage_type),
             data_redundancy_type=self.redundancy_type.get(redundancy_type)
         )
-        return self.bucket.create_bucket(permission, input=config)
+        result = self.bucket.create_bucket(permission, input=config)
+        self.__init(bucket_name=bucket_name)
+        return result
 
     def get_bucket_cors(self):
         """获取存储桶的CORS配置"""

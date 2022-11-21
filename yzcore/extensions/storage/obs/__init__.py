@@ -10,7 +10,7 @@ import json
 import os
 
 from yzcore.extensions.storage.base import StorageManagerBase, StorageRequestError
-from yzcore.extensions.storage.utils import wrap_request_return_bool
+from yzcore.extensions.storage.obs.utils import wrap_request_return_bool
 
 try:
     import obs
@@ -26,7 +26,7 @@ class ObsManager(StorageManagerBase):
         super(ObsManager, self).__init__(*args, **kwargs)
         self.__init()
 
-    def __init(self, *args, **kwargs):
+    def __init(self, bucket_name=None):
         """"""
         if obs is None:
             raise ImportError("'esdk-obs-python' must be installed to use ObsManager")
@@ -47,18 +47,12 @@ class ObsManager(StorageManagerBase):
             except OSError:
                 pass
 
-    def create_bucket(
-            self, bucket_name=None, location='cn-south-1'
-    ):
-        """"""
-        if bucket_name is None:
-            bucket_name = self.bucket_name
+    @wrap_request_return_bool
+    def create_bucket(self, bucket_name=None, location='cn-south-1'):
+        """创建bucket，并且作为当前操作bucket"""
         resp = self.obsClient.createBucket(bucket_name, location=location)
-        if resp.status < 300:
-            return True
-        else:
-            raise StorageRequestError(
-                f"errorCode: {resp.errorCode}. Message: {resp.errorMessage}.")
+        self.bucket_name = bucket_name
+        return resp
 
     def list_buckets(self):
         resp = self.obsClient.listBuckets(isQueryLocation=True)
@@ -218,6 +212,7 @@ class ObsManager(StorageManagerBase):
             'etag': resp.body.etag.strip('"').lower(),
             'size': resp.body.contentLength,
             'last_modified': resp.body.lastModified,
+            'content_type': resp.body.contentType,
         }
 
     def get_bucket_cors(self):
