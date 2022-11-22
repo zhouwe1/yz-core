@@ -40,7 +40,7 @@ class MinioManager(StorageManagerBase):
             self.endpoint,
             access_key=self.access_key_id,
             secret_key=self.access_key_secret,
-            secure=False,
+            secure=True,
         )
 
         if self.cache_path:
@@ -107,3 +107,41 @@ class MinioManager(StorageManagerBase):
             'last_modified': meta.last_modified,
             'content_type': meta.content_type,
         }
+
+    def update_file_headers(self, key, headers: dict):
+        self.minioClient.copy_object(self.bucket_name, key, CopySource(self.bucket_name, key), metadata=headers, metadata_directive='REPLACE')
+
+    def download(self, key, local_name=None, is_stream=False, **kwargs):
+        if is_stream:
+            return self.minioClient.get_object(self.bucket_name, key)
+        else:
+            # 下载文件到本地
+            if not local_name:
+                local_name = os.path.abspath(os.path.join(self.cache_path, key))
+            self.make_dir(os.path.dirname(local_name))
+            self.minioClient.fget_object(self.bucket_name, key, local_name)
+            return local_name
+
+    def upload(self, filepath, key=None, **kwargs):
+        try:
+            if key is None and filepath:
+                key = filepath.split('/')[-1]
+            if isinstance(filepath, str):
+                self.minioClient.fput_object(self.bucket_name, key, filepath, **kwargs)
+            else:
+                self.minioClient.put_object(self.bucket_name, key, filepath, length=-1)
+            return self.get_file_url(key)
+        except Exception as e:
+            raise StorageRequestError(f'minio upload error: {e}')
+
+    def get_policy(self, filepath: str, callback_url: str = '', callback_data: dict = None,
+                   callback_content_type: str = "application/json"):
+        form_data = self.post_sign_url(filepath)
+        data = {
+            'mode': 'minio',
+            'host': f"{self.scheme}://{self.endpoint}/{self.bucket_name}",
+            'dir': filepath,
+            'success_action_status': 200,
+            **form_data,
+        }
+        return data
