@@ -5,6 +5,7 @@
 @date: 2022/11/09
 @desc: minio对象存储封装
 """
+import json
 import os
 
 from yzcore.extensions.storage.base import StorageManagerBase, StorageRequestError
@@ -50,10 +51,27 @@ class MinioManager(StorageManagerBase):
                 pass
 
     def get_bucket_cors(self):
-        return self.minioClient.get_bucket_policy(self.bucket_name)
+        """返回的内容格式和OSS/OBS差异太大"""
+        result = self.minioClient.get_bucket_policy(self.bucket_name)
+        return json.loads(result)
 
     def set_bucket_cors(self, policy: dict):
         return self.minioClient.set_bucket_policy(self.bucket_name, policy)
+
+    def _cors_check(self):
+        passed = False
+        action_slots = ['s3:AbortMultipartUpload', 's3:DeleteObject', 's3:GetObject',
+                        's3:ListMultipartUploadParts', 's3:PutObject']
+
+        cors_dict = self.get_bucket_cors()
+        for cors in cors_dict['Statement']:
+            effect = cors['Effect']
+            resource = cors['Resource'][0]
+            actions = cors['Action']
+            if effect == 'Allow' and resource.endswith(f'{self.bucket_name}/*'):
+                if all([False for i in action_slots if i not in actions]):
+                    passed = True
+        return passed
 
     def create_bucket(self, bucket_name=None):
         """创建bucket，并且作为当前操作bucket"""
@@ -100,6 +118,7 @@ class MinioManager(StorageManagerBase):
         return _result
 
     def get_object_meta(self, key: str):
+        """获取文件基本元信息，包括该Object的ETag、Size（文件大小）、LastModified，Content-Type，并不返回其内容"""
         meta = self.minioClient.stat_object(self.bucket_name, key)
         return {
             'etag': meta.etag,
@@ -110,6 +129,7 @@ class MinioManager(StorageManagerBase):
 
     def update_file_headers(self, key, headers: dict):
         self.minioClient.copy_object(self.bucket_name, key, CopySource(self.bucket_name, key), metadata=headers, metadata_directive='REPLACE')
+        return True
 
     def download(self, key, local_name=None, is_stream=False, **kwargs):
         if is_stream:
@@ -122,14 +142,19 @@ class MinioManager(StorageManagerBase):
             self.minioClient.fget_object(self.bucket_name, key, local_name)
             return local_name
 
-    def upload(self, filepath, key=None, **kwargs):
+    def upload(self, filepath, key: str):
+        """
+        文件上传
+        :param filepath:
+        :param key:
+        """
         try:
-            if key is None and filepath:
-                key = filepath.split('/')[-1]
+            content_type = self.parse_content_type(key)
+
             if isinstance(filepath, str):
-                self.minioClient.fput_object(self.bucket_name, key, filepath, **kwargs)
+                self.minioClient.fput_object(self.bucket_name, key, filepath, content_type=content_type)
             else:
-                self.minioClient.put_object(self.bucket_name, key, filepath, length=-1)
+                self.minioClient.put_object(self.bucket_name, key, filepath, length=-1, content_type=content_type, part_size=1024*1024*5)
             return self.get_file_url(key)
         except Exception as e:
             raise StorageRequestError(f'minio upload error: {e}')

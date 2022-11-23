@@ -131,15 +131,15 @@ class ObsManager(StorageManagerBase):
             )
             return local_name
 
-    def upload(self, filepath, key=None, **kwargs):
-        """上传文件"""
-        if key is None and filepath:
-            key = filepath.split('/')[-1]
+    def upload(self, filepath, key: str):
+        """
+        上传文件
+        :param filepath: 文件路径或者文件内容
+        :param key:
+        """
+        headers = obs.PutObjectHeader(contentType=self.parse_content_type(key))
 
         if isinstance(filepath, str):
-            headers = None
-            if filepath.endswith(".dds"):
-                headers = obs.PutObjectHeader(contentType="application/octet-stream")
             resp = self.obsClient.putFile(
                 self.bucket_name, key, filepath, headers=headers)
         else:
@@ -204,9 +204,10 @@ class ObsManager(StorageManagerBase):
         obs_headers = SetObjectMetadataHeader()
         obs_headers.contentType = headers.get('Content-Type')  # oss 和 obs的参数名称不相同
         self.obsClient.setObjectMetadata(self.bucket_name, key, obs_headers)
+        return True
 
     def get_object_meta(self, key: str):
-        """获取文件基本元信息，包括该Object的ETag、Size（文件大小）、LastModified，并不返回其内容"""
+        """获取文件基本元信息，包括该Object的ETag、Size（文件大小）、LastModified，Content-Type，并不返回其内容"""
         resp = self.obsClient.getObjectMetadata(self.bucket_name, key)
         return {
             'etag': resp.body.etag.strip('"').lower(),

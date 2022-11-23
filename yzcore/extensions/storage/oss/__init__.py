@@ -17,6 +17,7 @@ from yzcore.extensions.storage.base import StorageManagerBase, StorageRequestErr
 
 try:
     import oss2
+    from oss2 import CaseInsensitiveDict
 except:
     oss2 = None
 
@@ -269,15 +270,17 @@ class OssManager(StorageManagerBase):
             self.bucket.get_object_to_file(key, local_name, process=process)
             return local_name
 
-    def upload(self, filepath, key=None, num_threads=2, multipart_threshold=None):
-        """上传oss文件"""
-        if key is None:
-            key = filepath.split('/')[-1]
+    def upload(self, filepath, key: str, num_threads=2, multipart_threshold=None):
+        """
+        上传oss文件
+        :param filepath:
+        :param key:
+        :param num_threads:
+        :param multipart_threshold:
+        """
+        headers = CaseInsensitiveDict({'Content-Type': self.parse_content_type(key)})
 
         if isinstance(filepath, str):
-            headers = None
-            if filepath.endswith(".dds"):
-                headers = {"Content-Type": "application/octet-stream"}
             result = oss2.resumable_upload(
                 self.bucket, key, filepath,
                 headers=headers,
@@ -285,7 +288,7 @@ class OssManager(StorageManagerBase):
                 multipart_threshold=multipart_threshold,
             )
         else:
-            result = self.bucket.put_object(key, filepath)
+            result = self.bucket.put_object(key, filepath, headers=headers)
         if result.status != 200:
             raise StorageRequestError(f'oss upload error: {result.resp}')
         # 返回下载链接
@@ -367,12 +370,15 @@ class OssManager(StorageManagerBase):
 
     def update_file_headers(self, key, headers):
         self.bucket.update_object_meta(key, headers)
+        return True
 
     def get_object_meta(self, key: str):
-        """获取文件基本元信息，包括该Object的ETag、Size（文件大小）、LastModified，并不返回其内容"""
-        meta = self.bucket.get_object_meta(key)
+        """获取文件基本元信息，包括该Object的ETag、Size（文件大小）、LastModified，Content-Type，并不返回其内容"""
+        # meta = self.bucket.get_object_meta(key)  # get_object_meta获取到的信息有限
+        meta = self.bucket.head_object(key)
         return {
             'etag': meta.etag.lower(),
             'size': meta.content_length,
             'last_modified': meta.headers['Last-Modified'],
+            'content_type': meta.headers['Content-Type']
         }

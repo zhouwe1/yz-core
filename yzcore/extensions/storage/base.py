@@ -1,8 +1,10 @@
 import os
 import shutil
+from typing import Union
+from io import BufferedReader
 from abc import ABCMeta, abstractmethod
 from yzcore.extensions.storage.utils import create_temp_file
-from yzcore.extensions.storage.const import IMAGE_FORMAT_SET
+from yzcore.extensions.storage.const import IMAGE_FORMAT_SET, CONTENT_TYPE
 from urllib.request import urlopen
 from urllib.error import URLError
 from ssl import SSLCertVerificationError
@@ -94,7 +96,7 @@ class StorageManagerBase(metaclass=ABCMeta):
 
     @abstractmethod
     def get_object_meta(self, key: str):
-        """获取文件基本元信息，包括该Object的ETag、Size（文件大小）、LastModified，并不返回其内容"""
+        """获取文件基本元信息，包括该Object的ETag、Size（文件大小）、LastModified，Content-Type，并不返回其内容"""
 
     @abstractmethod
     def update_file_headers(self, key, headers: dict):
@@ -105,7 +107,7 @@ class StorageManagerBase(metaclass=ABCMeta):
         """下载文件"""
 
     @abstractmethod
-    def upload(self, *args, **kwargs):
+    def upload(self, filepath: Union[str, BufferedReader], key: str):
         """"""
 
     @abstractmethod
@@ -193,6 +195,12 @@ class StorageManagerBase(metaclass=ABCMeta):
             download_file = self.download(key=f'storage_check_{text}.txt', is_stream=True)
             download_text = download_file.read().decode()
             assert download_text == text, f'{self.bucket_name}: DownloadFailed'
+
+            # 获取文件元数据
+            assert self.get_object_meta(key), f'{self.bucket_name}: Get object metadata Failed'
+            # 修改文件元数据
+            assert self.update_file_headers(key, {'Content-Type': 'text/plain'}), f'{self.bucket_name}: Update object metadata Failed'
+
             return True
         except AssertionError as e:
             raise StorageRequestError(e)
@@ -220,3 +228,8 @@ class StorageManagerBase(metaclass=ABCMeta):
                 raise StorageRequestError(f'{self.bucket_name}: 未开启https')
             raise StorageRequestError(f'{self.bucket_name}: Sign Url Error')
         return True
+
+    @staticmethod
+    def parse_content_type(filename):
+        ext = filename.split('.')[-1].lower()
+        return CONTENT_TYPE.get(ext, 'application/octet-stream')
