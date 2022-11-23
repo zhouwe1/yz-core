@@ -5,9 +5,12 @@ from io import BufferedReader
 from abc import ABCMeta, abstractmethod
 from yzcore.extensions.storage.utils import create_temp_file
 from yzcore.extensions.storage.const import IMAGE_FORMAT_SET, CONTENT_TYPE
+from yzcore.logger import get_logger
 from urllib.request import urlopen
 from urllib.error import URLError
 from ssl import SSLCertVerificationError
+
+logger = get_logger(__name__)
 
 
 class StorageRequestError(Exception):
@@ -188,6 +191,7 @@ class StorageManagerBase(metaclass=ABCMeta):
             key = f'storage_check_{text}.txt'
             # 上传
             file_url = self.upload(temp_file, key=key)
+            logger.debug(f'upload: {file_url}')
             assert file_url, f'{self.bucket_name}: Upload Failed'
             # 加签url
             assert self._check_sign_url(key), f'{self.bucket_name}: Sign Url Error'
@@ -197,9 +201,17 @@ class StorageManagerBase(metaclass=ABCMeta):
             assert download_text == text, f'{self.bucket_name}: DownloadFailed'
 
             # 获取文件元数据
-            assert self.get_object_meta(key), f'{self.bucket_name}: Get object metadata Failed'
+            metadata = self.get_object_meta(key)
+            logger.debug(f'get_object_meta: {metadata}')
+            assert metadata, f'{self.bucket_name}: Get object metadata Failed'
             # 修改文件元数据
             assert self.update_file_headers(key, {'Content-Type': 'text/plain'}), f'{self.bucket_name}: Update object metadata Failed'
+            logger.debug(f'update_file_headers: {self.get_object_meta(key)}')
+
+            # 遍历文件
+            objects = self.iter_objects()
+            logger.debug(f'iter_objects: {objects}')
+            assert objects, f'{self.bucket_name} iter objects Failed'
 
             return True
         except AssertionError as e:
@@ -209,6 +221,7 @@ class StorageManagerBase(metaclass=ABCMeta):
         """检查存储桶的CORS配置是否设置正确"""
         allowed_methods = {'GET', 'PUT', 'POST', 'DELETE', 'HEAD'}
         cors_dict = self.get_bucket_cors()
+        logger.debug(f'_cors_check: {cors_dict}')
         if set(cors_dict['allowed_methods']) != allowed_methods:
             raise StorageRequestError(f'{self.bucket_name}: CORS设置错误')
         if cors_dict['allowed_headers'] != ['*']:

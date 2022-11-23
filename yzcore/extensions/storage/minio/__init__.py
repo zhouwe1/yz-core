@@ -8,7 +8,7 @@
 import json
 import os
 
-from yzcore.extensions.storage.base import StorageManagerBase, StorageRequestError
+from yzcore.extensions.storage.base import StorageManagerBase, StorageRequestError, logger
 from datetime import timedelta, datetime
 
 try:
@@ -64,13 +64,15 @@ class MinioManager(StorageManagerBase):
                         's3:ListMultipartUploadParts', 's3:PutObject']
 
         cors_dict = self.get_bucket_cors()
+        logger.debug(f'_cors_check: {cors_dict}')
         for cors in cors_dict['Statement']:
             effect = cors['Effect']
             resource = cors['Resource'][0]
             actions = cors['Action']
-            if effect == 'Allow' and resource.endswith(f'{self.bucket_name}/*'):
-                if all([False for i in action_slots if i not in actions]):
-                    passed = True
+            if effect == 'Allow':
+                if resource == f'arn:aws:s3:::{self.bucket_name}/*' or resource == 'arn:aws:s3:::*':
+                    if all([False for i in action_slots if i not in actions]):
+                        passed = True
         return passed
 
     def create_bucket(self, bucket_name=None):
