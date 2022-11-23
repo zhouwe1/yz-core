@@ -209,7 +209,7 @@ class StorageManagerBase(metaclass=ABCMeta):
             logger.debug(f'update_file_headers: {self.get_object_meta(key)}')
 
             # 遍历文件
-            objects = self.iter_objects()
+            objects = self.iter_objects(key)
             logger.debug(f'iter_objects: {objects}')
             assert objects, f'{self.bucket_name} iter objects Failed'
 
