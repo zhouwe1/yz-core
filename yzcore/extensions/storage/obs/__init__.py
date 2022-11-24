@@ -191,7 +191,7 @@ class ObsManager(StorageManagerBase):
 
         data = dict(
             mode='obs',
-            accessid=self.access_key_id,
+            AccessKeyId=self.access_key_id,
             host=f"{self.scheme}://{self.bucket_name}.{self.endpoint}",
             policy=res.policy,
             signature=res.signature,

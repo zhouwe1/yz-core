@@ -169,6 +169,8 @@ class MinioManager(StorageManagerBase):
             'host': f"{self.scheme}://{self.endpoint}/{self.bucket_name}",
             'dir': filepath,
             'success_action_status': 200,
+            'callback': {'url': callback_url, 'data': callback_data},
+            # 'Content-Type': '上传时指定Content-Type',
             **form_data,
         }
         return data
