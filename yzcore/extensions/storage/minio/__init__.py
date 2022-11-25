@@ -161,12 +161,12 @@ class MinioManager(StorageManagerBase):
         except Exception as e:
             raise StorageRequestError(f'minio upload error: {e}')
 
-    def get_policy(self, filepath: str, callback_url: str = '', callback_data: dict = None,
+    def get_policy(self, filepath: str, callback_url: str, callback_data: dict = None,
                    callback_content_type: str = "application/json"):
         form_data = self.post_sign_url(filepath)
         data = {
             'mode': 'minio',
-            'host': f"{self.scheme}://{self.endpoint}/{self.bucket_name}",
+            'host': f'{self.scheme}:{self.host}',
             'dir': filepath,
             'success_action_status': 200,
             'callback': {'url': callback_url, 'data': callback_data},
@@ -174,3 +174,7 @@ class MinioManager(StorageManagerBase):
             **form_data,
         }
         return data
+
+    @property
+    def host(self):
+        return u'//{}/{}'.format(self.endpoint, self.bucket_name)

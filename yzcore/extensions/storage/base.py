@@ -132,6 +132,13 @@ class StorageManagerBase(metaclass=ABCMeta):
         :return:
         """
 
+    @property
+    def host(self):
+        if self.cname:
+            return u'//{}'.format(self.cname)
+        else:
+            return u'//{}.{}'.format(self.bucket_name, self.endpoint)
+
     def get_file_url(self, key):
         if not any((self.image_domain, self.asset_domain)):
             if self.mode == 'minio':

@@ -14,6 +14,7 @@ import datetime
 import hashlib
 from urllib import parse
 from yzcore.extensions.storage.base import StorageManagerBase, StorageRequestError
+from yzcore.extensions.storage.oss.const import *
 
 try:
     import oss2
@@ -38,24 +39,6 @@ class OssManager(StorageManagerBase):
         >>> oss.upload("/home/zhangw/Work/模型文件/狼.fbx", "test/狗.fbx")
         >>> oss.download("test/狗.fbx")
     """
-
-    acl_type = {
-        "private": oss2.BUCKET_ACL_PRIVATE,
-        "onlyread": oss2.BUCKET_ACL_PUBLIC_READ,
-        "readwrite": oss2.BUCKET_ACL_PUBLIC_READ_WRITE,
-    }
-    # 存储类型
-    storage_cls = {
-        "standard": oss2.BUCKET_STORAGE_CLASS_STANDARD,          # 标准类型
-        "ia": oss2.BUCKET_STORAGE_CLASS_IA,                      # 低频访问类型
-        "archive": oss2.BUCKET_STORAGE_CLASS_ARCHIVE,            # 归档类型
-        "cold_archive": oss2.BUCKET_STORAGE_CLASS_COLD_ARCHIVE,  # 冷归档类型
-    }
-    # 冗余类型
-    redundancy_type = {
-        "lrs": oss2.BUCKET_DATA_REDUNDANCY_TYPE_LRS,    # 本地冗余
-        "zrs": oss2.BUCKET_DATA_REDUNDANCY_TYPE_ZRS,    # 同城冗余（跨机房）
-    }
 
     def __init__(self, *args, **kwargs):
         super(OssManager, self).__init__(*args, **kwargs)
@@ -99,10 +82,10 @@ class OssManager(StorageManagerBase):
                       storage_type='standard',
                       redundancy_type='zrs'):
         """创建bucket，并且作为当前操作bucket"""
-        permission = self.acl_type.get(acl_type)
+        permission = ACL_TYPE.get(acl_type)
         config = oss2.models.BucketCreateConfig(
-            storage_class=self.storage_cls.get(storage_type),
-            data_redundancy_type=self.redundancy_type.get(redundancy_type)
+            storage_class=STORAGE_CLS.get(storage_type),
+            data_redundancy_type=REDUNDANCY_TYPE.get(redundancy_type)
         )
         result = self.bucket.create_bucket(permission, input=config)
         self.__init(bucket_name=bucket_name)
@@ -332,8 +315,8 @@ class OssManager(StorageManagerBase):
 
         return dict(
             mode='oss',
-            accessid=self.access_key_id,
-            host=f"{self.scheme}://{self.bucket_name}.{self.endpoint}",
+            OSSAccessKeyId=self.access_key_id,
+            host=f'{self.scheme}:{self.host}',
             policy=policy_encode.decode(),
             signature=sign,
             dir=filepath,
