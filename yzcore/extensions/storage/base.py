@@ -147,11 +147,19 @@ class StorageManagerBase(metaclass=ABCMeta):
             else:
                 resource_url = u"//{}.{}/{}".format(self.bucket_name, self.endpoint, key).replace("-internal", "")
         elif key.split('.')[-1].lower() in IMAGE_FORMAT_SET:
-            resource_url = u"//{domain}/{key}".format(
-                domain=self.image_domain, key=key)
+            if self.mode == 'minio':
+                resource_url = u"//{domain}/{bucket}/{key}".format(
+                    domain=self.image_domain, bucket=self.bucket_name, key=key)
+            else:
+                resource_url = u"//{domain}/{key}".format(
+                    domain=self.image_domain, key=key)
         else:
-            resource_url = u"//{domain}/{key}".format(
-                domain=self.asset_domain, key=key)
+            if self.mode == 'minio':
+                resource_url = u"//{domain}/{bucket}/{key}".format(
+                    domain=self.asset_domain, bucket=self.bucket_name, key=key)
+            else:
+                resource_url = u"//{domain}/{key}".format(
+                    domain=self.asset_domain, key=key)
         return resource_url
 
     def delete_cache_file(self, filename):
