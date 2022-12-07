@@ -50,6 +50,14 @@ class StorageController(metaclass=ABCMeta):
         storage_ctrl.storage_mode = storage_ctrl.storage_conf['mode']
         return storage_ctrl
 
+    @classmethod
+    def sync_init(cls):
+        """同步方式初始化，只适用于全局存储的初始化"""
+        storage_ctrl = cls('')
+        storage_ctrl.storage_conf = cls.global_storage_conf().copy()
+        storage_ctrl.storage_mode = storage_ctrl.storage_conf['mode']
+        return storage_ctrl
+
     @abstractmethod
     async def _get_organiz_storage_conf(self):
         """
