@@ -206,6 +206,14 @@ class ObsManager(StorageManagerBase):
         self.obsClient.setObjectMetadata(self.bucket_name, key, obs_headers)
         return True
 
+    def file_exists(self, key):
+        """检查文件是否存在"""
+        resp = self.obsClient.getObjectMetadata(self.bucket_name, key)
+        if resp.get('status') == 200:
+            return True
+        elif resp.get('status') == 404:
+            return False
+
     def get_object_meta(self, key: str):
         """获取文件基本元信息，包括该Object的ETag、Size（文件大小）、LastModified，Content-Type，并不返回其内容"""
         resp = self.obsClient.getObjectMetadata(self.bucket_name, key)

@@ -355,6 +355,10 @@ class OssManager(StorageManagerBase):
         self.bucket.update_object_meta(key, headers)
         return True
 
+    def file_exists(self, key):
+        """检查文件是否存在"""
+        return self.bucket.object_exists(key)
+
     def get_object_meta(self, key: str):
         """获取文件基本元信息，包括该Object的ETag、Size（文件大小）、LastModified，Content-Type，并不返回其内容"""
         # meta = self.bucket.get_object_meta(key)  # get_object_meta获取到的信息有限

@@ -107,6 +107,10 @@ class StorageManagerBase(metaclass=ABCMeta):
         """更改Object的元数据信息，包括Content-Type这类标准的HTTP头部"""
 
     @abstractmethod
+    def file_exists(self, key):
+        """检查文件是否存在"""
+
+    @abstractmethod
     def download(self, key, local_name=None, is_stream=False, **kwargs):
         """下载文件"""
 

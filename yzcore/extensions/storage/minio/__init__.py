@@ -15,6 +15,7 @@ try:
     from minio import Minio
     from minio.datatypes import PostPolicy
     from minio.commonconfig import CopySource
+    from minio.error import S3Error
 except:
     Minio = None
 
@@ -132,6 +133,15 @@ class MinioManager(StorageManagerBase):
     def update_file_headers(self, key, headers: dict):
         self.minioClient.copy_object(self.bucket_name, key, CopySource(self.bucket_name, key), metadata=headers, metadata_directive='REPLACE')
         return True
+
+    def file_exists(self, key):
+        try:
+            self.minioClient.stat_object(self.bucket_name, key)
+            return True
+        except S3Error as e:
+            if e.code == 'NoSuchKey':
+                return False
+            raise e
 
     def download(self, key, local_name=None, is_stream=False, **kwargs):
         if is_stream:
