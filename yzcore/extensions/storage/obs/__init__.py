@@ -107,29 +107,16 @@ class ObsManager(StorageManagerBase):
             })
         return _result
 
-    def download(self, key, local_name=None, is_stream=False, progress_callback=None):
-        """
-        下载obs文件
-        :param key:
-        :param local_name:
-        :param is_stream:
-        :param progress_callback:
-        :return: 文件对象或文件下载后的本地路径
-        """
-        if is_stream:
-            resp = self.obsClient.getObject(self.bucket_name, key, loadStreamInMemory=False)
-            # 获取对象内容
-            return resp.body.response
-        else:
-            if not local_name:
-                local_name = os.path.abspath(os.path.join(self.cache_path, key))
-            self.make_dir(os.path.dirname(local_name))
-            self.obsClient.getObject(
-                self.bucket_name, key,
-                downloadPath=local_name,
-                progressCallback=progress_callback
-            )
-            return local_name
+    def download_stream(self, key, **kwargs):
+        resp = self.obsClient.getObject(self.bucket_name, key, loadStreamInMemory=False)
+        return resp.body.response
+
+    def download_file(self, key, local_name, progress_callback=None):
+        self.obsClient.getObject(
+            self.bucket_name, key,
+            downloadPath=local_name,
+            progressCallback=progress_callback
+        )
 
     def upload(self, filepath, key: str):
         """

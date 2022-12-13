@@ -227,31 +227,11 @@ class OssManager(StorageManagerBase):
             })
         return _result
 
-    def download(self, key, local_name=None, is_stream=False, process=None):
-        """
-        下载oss文件
-        :param key:
-        :param local_name: 下载的文件在本地的路径
-        :param process:
-        :param is_stream:
-            is_stream = True:
-                >>> result = self.download('readme.txt', is_stream=True)
-                >>> print(result.read())
-                'hello world'
-            is_stream = False:
-                >>> result = self.download('readme.txt', '/tmp/cache/readme.txt')
-                >>> print(result)
-                '/tmp/cache/readme.txt'
-        :return: 文件对象或文件下载后的本地路径
-        """
-        if is_stream:
-            return self.bucket.get_object(key, process=process)
-        else:
-            if not local_name:
-                local_name = os.path.abspath(os.path.join(self.cache_path, key))
-            self.make_dir(os.path.dirname(local_name))
-            self.bucket.get_object_to_file(key, local_name, process=process)
-            return local_name
+    def download_stream(self, key, process=None):
+        return self.bucket.get_object(key, process=process)
+
+    def download_file(self, key, local_name, process=None):
+        self.bucket.get_object_to_file(key, local_name, process=process)
 
     def upload(self, filepath, key: str, num_threads=2, multipart_threshold=None):
         """

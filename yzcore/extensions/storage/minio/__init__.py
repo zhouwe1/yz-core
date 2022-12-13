@@ -143,16 +143,11 @@ class MinioManager(StorageManagerBase):
                 return False
             raise e
 
-    def download(self, key, local_name=None, is_stream=False, **kwargs):
-        if is_stream:
-            return self.minioClient.get_object(self.bucket_name, key)
-        else:
-            # 下载文件到本地
-            if not local_name:
-                local_name = os.path.abspath(os.path.join(self.cache_path, key))
-            self.make_dir(os.path.dirname(local_name))
-            self.minioClient.fget_object(self.bucket_name, key, local_name)
-            return local_name
+    def download_stream(self, key, **kwargs):
+        return self.minioClient.get_object(self.bucket_name, key)
+
+    def download_file(self, key, local_name, **kwargs):
+        self.minioClient.fget_object(self.bucket_name, key, local_name)
 
     def upload(self, filepath, key: str):
         """

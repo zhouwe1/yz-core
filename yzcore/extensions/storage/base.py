@@ -8,7 +8,7 @@ from yzcore.extensions.storage.const import IMAGE_FORMAT_SET, CONTENT_TYPE
 from yzcore.logger import get_logger
 from urllib.request import urlopen
 from urllib.error import URLError
-from urllib.parse import urlparse
+from urllib.parse import urlparse, unquote
 from ssl import SSLCertVerificationError
 
 logger = get_logger(__name__)
@@ -111,8 +111,44 @@ class StorageManagerBase(metaclass=ABCMeta):
         """检查文件是否存在"""
 
     @abstractmethod
-    def download(self, key, local_name=None, is_stream=False, **kwargs):
+    def download(self, key, local_name=None, path=None, is_stream=False, **kwargs):
+        """
+        下载文件
+        :param key:
+        :param local_name: 下载的文件在本地的路径
+        :param path: 文件下载路径
+        :param is_stream:
+            is_stream = True:
+                >>> result = self.download('readme.txt', is_stream=True)
+                >>> print(result.read())
+                'hello world'
+            is_stream = False:
+                >>> result = self.download('readme.txt', '/tmp/cache/readme.txt')
+                >>> print(result)
+                '/tmp/cache/readme.txt'
+        :return: 文件对象或文件下载后的本地路径
+        """
+        if is_stream:
+            return self.download_stream(key, **kwargs)
+        else:
+            if not local_name:
+                if path:
+                    local_name = os.path.abspath(os.path.join(self.cache_path, path, self.get_filename(key)))
+                else:
+                    local_name = os.path.abspath(os.path.join(self.cache_path, key))
+            self.make_dir(os.path.dirname(local_name))
+            self.download_file(key, local_name)
+            return local_name
+
+    @abstractmethod
+    def download_stream(self, key, **kwargs):
+        """下载文件流"""
+        pass
+
+    @abstractmethod
+    def download_file(self, key, local_name, **kwargs):
         """下载文件"""
+        pass
 
     @abstractmethod
     def upload(self, filepath: Union[str, BufferedReader], key: str):
@@ -273,3 +309,9 @@ class StorageManagerBase(metaclass=ABCMeta):
             url = '//' + url
         url_parse = urlparse(url)
         return url_parse.path[1:]  # 去掉最前面的 /
+
+    @staticmethod
+    def get_filename(key):
+        """从key中提取文件名，不包含路径"""
+        key = unquote(key)
+        return key.split('/')[-1]
