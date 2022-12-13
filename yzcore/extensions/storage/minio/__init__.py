@@ -186,4 +186,4 @@ class MinioManager(StorageManagerBase):
 
     def get_key_from_url(self, url):
         """从URL中获取对象存储key"""
-        return url.split(self.bucket_name + '/')[1]
+        return url.split(self.bucket_name + '/')[-1]

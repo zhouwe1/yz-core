@@ -110,7 +110,6 @@ class StorageManagerBase(metaclass=ABCMeta):
     def file_exists(self, key):
         """检查文件是否存在"""
 
-    @abstractmethod
     def download(self, key, local_name=None, path=None, is_stream=False, **kwargs):
         """
         下载文件
