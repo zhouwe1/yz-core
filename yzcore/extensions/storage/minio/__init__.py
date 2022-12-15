@@ -42,7 +42,7 @@ class MinioManager(StorageManagerBase):
             self.endpoint,
             access_key=self.access_key_id,
             secret_key=self.access_key_secret,
-            secure=True,
+            secure=True if self.scheme == 'https' else False,
         )
 
         if self.cache_path:
