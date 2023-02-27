@@ -13,7 +13,7 @@ import hmac
 import datetime
 import hashlib
 from urllib import parse
-from yzcore.extensions.storage.base import StorageManagerBase, StorageRequestError
+from yzcore.extensions.storage.base import StorageManagerBase, StorageRequestError, IMAGE_FORMAT_SET
 from yzcore.extensions.storage.oss.const import *
 
 try:
@@ -24,21 +24,6 @@ except:
 
 
 class OssManager(StorageManagerBase):
-    """
-    使用示例:
-        >>> oss_conf = dict(
-        ...     access_key_id="LTAIxxxxxxxxxxx",
-        ...     access_key_secret="Cep4Mxxxxxxxxxxxxxxxxxxxx",
-        ...     endpoint="oss-cn-shenzhen.aliyuncs.com",
-        ...     # endpoint="oss-cn-shenzhen-internal.aliyuncs.com",
-        ...     bucket_name="xxxx-local",
-        ...     cache_path="/tmp/xxxx/fm/cache"
-        ... )
-
-        >>> oss = OssManager(**oss_conf)
-        >>> oss.upload("/home/zhangw/Work/模型文件/狼.fbx", "test/狗.fbx")
-        >>> oss.download("test/狗.fbx")
-    """
 
     def __init__(self, *args, **kwargs):
         super(OssManager, self).__init__(*args, **kwargs)
@@ -55,12 +40,17 @@ class OssManager(StorageManagerBase):
 
         self.auth = oss2.Auth(self.access_key_id, self.access_key_secret)
 
-        # 如果cname存在，则使用自定义域名初始化
-        self.endpoint = self.cname if self.cname else self.endpoint
-        is_cname = True if self.cname else False
+        # 首先，如果cname存在，则使用自定义域名初始化
+        if self.cname:
+            self.endpoint = self.cname
+            self.is_cname = True
+        # 其次，优先内网endpoint
+        elif self.internal_endpoint:
+            self.endpoint = self.internal_endpoint
+
         self.bucket_name = bucket_name if bucket_name else self.bucket_name
         self.bucket = oss2.Bucket(
-            self.auth, self.endpoint, self.bucket_name, is_cname=is_cname
+            self.auth, self.endpoint, self.bucket_name, is_cname=self.is_cname
         )
 
         if self.cache_path:
@@ -349,3 +339,22 @@ class OssManager(StorageManagerBase):
             'last_modified': meta.headers['Last-Modified'],
             'content_type': meta.headers['Content-Type']
         }
+
+    @property
+    def host(self):
+        if self.cname:
+            return u'//{}'.format(self.cname)
+        else:
+            return u'//{}.{}'.format(self.bucket_name, self.endpoint.replace('-internal', ''))
+
+    def get_file_url(self, key):
+        if not any((self.image_domain, self.asset_domain)):
+            if self.is_cname:
+                resource_url = u"//{}/{}".format(self.cname, key)
+            else:
+                resource_url = u"//{}.{}/{}".format(self.bucket_name, self.endpoint.replace('-internal', ''), key)
+        elif key.split('.')[-1].lower() in IMAGE_FORMAT_SET:
+            resource_url = u"//{domain}/{key}".format(domain=self.image_domain, key=key)
+        else:
+            resource_url = u"//{domain}/{key}".format(domain=self.asset_domain, key=key)
+        return resource_url

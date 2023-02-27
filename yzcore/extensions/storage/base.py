@@ -25,6 +25,7 @@ class StorageManagerBase(metaclass=ABCMeta):
             access_key_secret,
             bucket_name,
             endpoint=None,
+            internal_endpoint=None,
             cname=None,
             cache_path='.',
             expire_time=30,
@@ -35,6 +36,7 @@ class StorageManagerBase(metaclass=ABCMeta):
         self.access_key_secret = access_key_secret
         self.bucket_name = bucket_name
         self.endpoint = endpoint
+        self.internal_endpoint = internal_endpoint
 
         self.cache_path = cache_path
         self.scheme = kwargs.get("scheme", "https")
@@ -46,6 +48,7 @@ class StorageManagerBase(metaclass=ABCMeta):
         self.cname = cname
         self.mode = mode
         self.bucket = None
+        self.is_cname = False
 
     @abstractmethod
     def create_bucket(self, bucket_name):
@@ -181,24 +184,14 @@ class StorageManagerBase(metaclass=ABCMeta):
 
     def get_file_url(self, key):
         if not any((self.image_domain, self.asset_domain)):
-            if self.mode == 'minio':
-                resource_url = u"//{}/{}/{}".format(self.endpoint, self.bucket_name, key)
+            if self.is_cname:
+                resource_url = u"//{}/{}".format(self.cname, key)
             else:
-                resource_url = u"//{}.{}/{}".format(self.bucket_name, self.endpoint, key).replace("-internal", "")
+                resource_url = u"//{}.{}/{}".format(self.bucket_name, self.endpoint, key)
         elif key.split('.')[-1].lower() in IMAGE_FORMAT_SET:
-            if self.mode == 'minio':
-                resource_url = u"//{domain}/{bucket}/{key}".format(
-                    domain=self.image_domain, bucket=self.bucket_name, key=key)
-            else:
-                resource_url = u"//{domain}/{key}".format(
-                    domain=self.image_domain, key=key)
+            resource_url = u"//{domain}/{key}".format(domain=self.image_domain, key=key)
         else:
-            if self.mode == 'minio':
-                resource_url = u"//{domain}/{bucket}/{key}".format(
-                    domain=self.asset_domain, bucket=self.bucket_name, key=key)
-            else:
-                resource_url = u"//{domain}/{key}".format(
-                    domain=self.asset_domain, key=key)
+            resource_url = u"//{domain}/{key}".format(domain=self.asset_domain, key=key)
         return resource_url
 
     def delete_cache_file(self, filename):

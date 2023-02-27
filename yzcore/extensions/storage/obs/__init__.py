@@ -9,7 +9,7 @@ import base64
 import json
 import os
 
-from yzcore.extensions.storage.base import StorageManagerBase, StorageRequestError
+from yzcore.extensions.storage.base import StorageManagerBase, StorageRequestError, IMAGE_FORMAT_SET
 from yzcore.extensions.storage.obs.utils import wrap_request_return_bool
 
 try:
@@ -32,13 +32,13 @@ class ObsManager(StorageManagerBase):
             raise ImportError("'esdk-obs-python' must be installed to use ObsManager")
         # 创建ObsClient实例
         self.endpoint = self.cname if self.cname else self.endpoint
-        is_cname = True if self.cname else False
+        self.is_cname = True if self.cname else False
 
         self.obsClient = ObsClient(
             access_key_id=self.access_key_id,
             secret_access_key=self.access_key_secret,
             server=self.endpoint,
-            is_cname=is_cname,
+            is_cname=self.is_cname,
         )
 
         if self.cache_path:
@@ -137,11 +137,7 @@ class ObsManager(StorageManagerBase):
             msg = resp.errorMessage
             raise StorageRequestError(f'obs upload error: {msg}')
 
-        # 返回下载链接
-        if not any((self.image_domain, self.asset_domain)):
-            return '//{}.{}/{}'.format(self.bucket_name, self.endpoint, key)
-        else:
-            return self.get_file_url(key)
+        return self.get_file_url(key)
 
     def get_policy(
             self,

@@ -8,8 +8,9 @@
 import json
 import os
 
-from yzcore.extensions.storage.base import StorageManagerBase, StorageRequestError, logger
+from yzcore.extensions.storage.base import StorageManagerBase, StorageRequestError, logger, IMAGE_FORMAT_SET
 from datetime import timedelta, datetime
+
 
 try:
     from minio import Minio
@@ -187,3 +188,14 @@ class MinioManager(StorageManagerBase):
     def get_key_from_url(self, url):
         """从URL中获取对象存储key"""
         return url.split(self.bucket_name + '/')[-1]
+
+    def get_file_url(self, key):
+        if not any((self.image_domain, self.asset_domain)):
+            resource_url = u"//{}/{}/{}".format(self.endpoint, self.bucket_name, key)
+        elif key.split('.')[-1].lower() in IMAGE_FORMAT_SET:
+            resource_url = u"//{domain}/{bucket}/{key}".format(
+                domain=self.image_domain, bucket=self.bucket_name, key=key)
+        else:
+            resource_url = u"//{domain}/{bucket}/{key}".format(
+                domain=self.asset_domain, bucket=self.bucket_name, key=key)
+        return resource_url
