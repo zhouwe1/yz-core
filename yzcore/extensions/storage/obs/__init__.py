@@ -168,7 +168,7 @@ class ObsManager(StorageManagerBase):
             'body': base64_callback_body.decode(),
             'url': callback_url,
             'body-type': callback_content_type,
-            'success_action_status': '200',
+            # 'success_action_status': '200',
         }
         res = self.post_sign_url(key=None, form_param=form_param)
 
