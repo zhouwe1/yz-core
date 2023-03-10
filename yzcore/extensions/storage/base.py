@@ -182,7 +182,7 @@ class StorageManagerBase(metaclass=ABCMeta):
         else:
             return u'//{}.{}'.format(self.bucket_name, self.endpoint)
 
-    def get_file_url(self, key):
+    def get_file_url(self, key, with_scheme=False):
         if not any((self.image_domain, self.asset_domain)):
             if self.is_cname:
                 resource_url = u"//{}/{}".format(self.cname, key)
@@ -192,6 +192,8 @@ class StorageManagerBase(metaclass=ABCMeta):
             resource_url = u"//{domain}/{key}".format(domain=self.image_domain, key=key)
         else:
             resource_url = u"//{domain}/{key}".format(domain=self.asset_domain, key=key)
+        if with_scheme:
+            resource_url = self.scheme + ':' + resource_url
         return resource_url
 
     def delete_cache_file(self, filename):

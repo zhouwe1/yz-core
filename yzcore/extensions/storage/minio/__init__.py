@@ -189,7 +189,7 @@ class MinioManager(StorageManagerBase):
         """从URL中获取对象存储key"""
         return url.split(self.bucket_name + '/')[-1]
 
-    def get_file_url(self, key):
+    def get_file_url(self, key, with_scheme=False):
         if not any((self.image_domain, self.asset_domain)):
             resource_url = u"//{}/{}/{}".format(self.endpoint, self.bucket_name, key)
         elif key.split('.')[-1].lower() in IMAGE_FORMAT_SET:
@@ -198,4 +198,6 @@ class MinioManager(StorageManagerBase):
         else:
             resource_url = u"//{domain}/{bucket}/{key}".format(
                 domain=self.asset_domain, bucket=self.bucket_name, key=key)
+        if with_scheme:
+            resource_url = self.scheme + ':' + resource_url
         return resource_url
