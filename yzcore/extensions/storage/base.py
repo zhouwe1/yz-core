@@ -297,8 +297,10 @@ class StorageManagerBase(metaclass=ABCMeta):
 
     def get_key_from_url(self, url):
         """从URL中获取对象存储key"""
-        if not url.startswith('//') or not url.startswith('http'):
-            url = '//' + url
+        if url.startswith('//'):
+            url = 'https:' + url
+        elif not url.startswith('http'):
+            url = 'https://' + url
         url_parse = urlparse(url)
         return url_parse.path[1:]  # 去掉最前面的 /
 
