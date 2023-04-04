@@ -284,7 +284,7 @@ class StorageManagerBase(metaclass=ABCMeta):
         """判断加签url是否可以正常打开，并且配置了https"""
         try:
             sign_url = self.get_sign_url(key=key, expire=600)
-            resp = urlopen('https:' + sign_url)
+            resp = urlopen(self.scheme + ':' + sign_url)
             assert resp.status < 300, f'{self.bucket_name}: Sign Url Error, {sign_url}'
         except URLError as e:
             if isinstance(e.reason, SSLCertVerificationError):
