@@ -38,6 +38,8 @@ class DefaultSetting(BaseSettings):
     TRANSLATE_PATH: str = '/uuid/translate/'
     MAKE_UUID_PATH: str = '/uuid/make/'
 
+    STORAGE_CONF: dict = None
+
 
 default_setting = DefaultSetting()
 

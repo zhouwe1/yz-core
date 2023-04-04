@@ -1,4 +1,5 @@
 from yzcore.extensions.storage import StorageManage, StorageRequestError
+from yzcore.default_settings import default_setting as settings
 from abc import ABCMeta, abstractmethod
 
 
@@ -67,9 +68,9 @@ class StorageController(metaclass=ABCMeta):
         """
 
     @classmethod
-    @abstractmethod
     def global_storage_conf(cls):
         """返回全局对象存储配置"""
+        return settings.STORAGE_CONF
 
     @property
     def public_storage_manage(self):
