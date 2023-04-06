@@ -21,6 +21,7 @@ class StorageRequestError(Exception):
 class StorageManagerBase(metaclass=ABCMeta):
     def __init__(
             self,
+            mode,
             access_key_id,
             access_key_secret,
             bucket_name,
@@ -29,9 +30,10 @@ class StorageManagerBase(metaclass=ABCMeta):
             cname=None,
             cache_path='.',
             expire_time=30,
-            mode=None,
+            scheme='https',
             **kwargs
     ):
+        self.mode = mode
         self.access_key_id = access_key_id
         self.access_key_secret = access_key_secret
         self.bucket_name = bucket_name
@@ -39,15 +41,13 @@ class StorageManagerBase(metaclass=ABCMeta):
         self.internal_endpoint = internal_endpoint
 
         self.cache_path = cache_path
-        self.scheme = kwargs.get("scheme", "https")
+        self.scheme = scheme
         self.image_domain = kwargs.get("image_domain")
         self.asset_domain = kwargs.get("asset_domain")
         self.policy_expire_time = kwargs.get("policy_expire_time", expire_time)
         self.private_expire_time = kwargs.get("private_expire_time", expire_time)
 
         self.cname = cname
-        self.mode = mode
-        self.bucket = None
         self.is_cname = False
 
     @abstractmethod

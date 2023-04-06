@@ -9,7 +9,7 @@ import base64
 import json
 import os
 
-from yzcore.extensions.storage.base import StorageManagerBase, StorageRequestError, IMAGE_FORMAT_SET
+from yzcore.extensions.storage.base import StorageManagerBase, StorageRequestError
 from yzcore.extensions.storage.obs.utils import wrap_request_return_bool
 
 try:

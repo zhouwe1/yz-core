@@ -20,18 +20,20 @@ class StorageController(metaclass=ABCMeta):
     >>> storage_ctrl.public_storage_manage  # 非加密存储控制器
     >>> storage_ctrl.private_storage_manage  # 加密存储控制器
     全局对象存储
-    >>> global_storage_manage = await StorageController.init()
+    >>> global_storage_manage = StorageController.sync_init()
     >>> global_storage_manage.public_storage_manage  # 全局非加密存储控制器
     >>> global_storage_manage.private_storage_manage  # 全局加密存储控制器
     """
+
+    global_storage_conf = settings.STORAGE_CONF  # 全局对象存储配置
 
     def __init__(self, organiz_id):
         """
         不可直接使用，请在 StorageManage.init 初始化
         """
         self.organiz_id = organiz_id
-        self.organiz_storage_conf = dict()
-        self.storage_conf = dict()
+        self.organiz_storage_conf = dict()  # 组织自定义对象存储
+        self.storage_conf = dict()  # 对象存储实际使用的配置
         self.storage_mode = ''
 
     @classmethod
@@ -45,10 +47,10 @@ class StorageController(metaclass=ABCMeta):
             organiz_storage_conf = await storage_ctrl._get_organiz_storage_conf()
             if organiz_storage_conf:
                 # 覆盖回全局对象存储配置，避免丢失全局配置
-                _storage_conf = cls.global_storage_conf().copy()
+                _storage_conf = cls.global_storage_conf.copy()
                 _storage_conf.update(organiz_storage_conf)
                 storage_ctrl.organiz_storage_conf = _storage_conf
-        storage_ctrl.storage_conf = storage_ctrl.organiz_storage_conf or cls.global_storage_conf()
+        storage_ctrl.storage_conf = storage_ctrl.organiz_storage_conf or cls.global_storage_conf
         storage_ctrl.storage_mode = storage_ctrl.storage_conf['mode']
         return storage_ctrl
 
@@ -56,7 +58,7 @@ class StorageController(metaclass=ABCMeta):
     def sync_init(cls):
         """同步方式初始化，只适用于全局存储的初始化"""
         storage_ctrl = cls('')
-        storage_ctrl.storage_conf = cls.global_storage_conf().copy()
+        storage_ctrl.storage_conf = cls.global_storage_conf
         storage_ctrl.storage_mode = storage_ctrl.storage_conf['mode']
         return storage_ctrl
 
@@ -66,11 +68,6 @@ class StorageController(metaclass=ABCMeta):
         获取组织的自定义对象存储配置
         :return: dict(**organiz_storage_conf) or None
         """
-
-    @classmethod
-    def global_storage_conf(cls):
-        """返回全局对象存储配置"""
-        return settings.STORAGE_CONF
 
     @property
     def public_storage_manage(self):
@@ -118,9 +115,9 @@ class StorageController(metaclass=ABCMeta):
             image_domain=storage_conf['image_domain'],
             asset_domain=storage_conf['asset_domain'],
             scheme=storage_conf.get('scheme', 'https'),
-            cache_path=cls.global_storage_conf()['cache_path'],  # 来自全局配置
-            policy_expire_time=cls.global_storage_conf()['policy_expire_time'],  # 来自全局配置
-            private_expire_time=cls.global_storage_conf()['private_expire_time'],  # 来自全局配置
+            cache_path=cls.global_storage_conf['cache_path'],  # 来自全局配置
+            policy_expire_time=cls.global_storage_conf['policy_expire_time'],  # 来自全局配置
+            private_expire_time=cls.global_storage_conf['private_expire_time'],  # 来自全局配置
         )
 
     @classmethod
@@ -152,7 +149,7 @@ class StorageController(metaclass=ABCMeta):
             asset_domain=storage_conf['private_domain'],
             cname=storage_conf['private_cname'],
             scheme=storage_conf.get('scheme', 'https'),
-            cache_path=cls.global_storage_conf()['cache_path'],  # 来自全局配置
-            policy_expire_time=cls.global_storage_conf()['policy_expire_time'],  # 来自全局配置
-            private_expire_time=cls.global_storage_conf()['private_expire_time'],  # 来自全局配置
+            cache_path=cls.global_storage_conf['cache_path'],  # 来自全局配置
+            policy_expire_time=cls.global_storage_conf['policy_expire_time'],  # 来自全局配置
+            private_expire_time=cls.global_storage_conf['private_expire_time'],  # 来自全局配置
         )

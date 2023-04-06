@@ -27,6 +27,7 @@ class OssManager(StorageManagerBase):
 
     def __init__(self, *args, **kwargs):
         super(OssManager, self).__init__(*args, **kwargs)
+        self.bucket = None
         self.__init()
 
     def __init(self, bucket_name=None):

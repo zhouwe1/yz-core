@@ -1,4 +1,3 @@
-import functools
 from io import BytesIO
 from yzcore.utils.crypto import get_random_string
 
