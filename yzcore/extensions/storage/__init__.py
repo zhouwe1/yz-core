@@ -1,6 +1,7 @@
 from yzcore.extensions.storage.oss import OssManager
 from yzcore.extensions.storage.obs import ObsManager
 from yzcore.extensions.storage.minio import MinioManager
+from yzcore.extensions.storage.azure import AzureBlobManager
 from yzcore.extensions.storage.base import StorageRequestError
 from yzcore.extensions.storage.const import IMAGE_FORMAT_SET
 
@@ -34,6 +35,8 @@ class StorageManage(object):
             storage_manage = OssManager(**kwargs)
         elif kwargs['mode'].lower() == 'minio':
             storage_manage = MinioManager(**kwargs)
+        elif kwargs['mode'].lower() == 'azure':
+            storage_manage = AzureBlobManager(**kwargs)
         else:
             storage_manage = None
         return storage_manage

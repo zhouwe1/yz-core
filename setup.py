@@ -46,8 +46,9 @@ setuptools.setup(
     extras_require={
         'rpc': ['yzrpc>=0.1'],
         'oss-aliyun': ['oss2>=2.13.1, !=3.0.0'],
-        'oss-huawei': ['esdk-obs-python>=3.22.2'],
+        'obs-huawei': ['esdk-obs-python==3.22.2'],
         'oss-aws': ['boto3==1.17.27'],
-        'oss-minio': ['minio==7.1.12'],
+        'minio': ['minio==7.1.12'],
+        'azure-blob': ['azure-storage-blob==12.16.0'],
     }
 )

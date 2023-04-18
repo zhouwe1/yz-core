@@ -24,6 +24,7 @@ class ObsManager(StorageManagerBase):
 
     def __init__(self, *args, **kwargs):
         super(ObsManager, self).__init__(*args, **kwargs)
+        self.mode = 'obs'
         self.__init()
 
     def __init(self, bucket_name=None):

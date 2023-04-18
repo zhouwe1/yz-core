@@ -25,6 +25,7 @@ class MinioManager(StorageManagerBase):
 
     def __init__(self, *args, **kwargs):
         super(MinioManager, self).__init__(*args, **kwargs)
+        self.mode = 'minio'
         self.__init()
 
     def __init(self, bucket_name=None):

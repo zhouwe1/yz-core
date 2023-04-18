@@ -21,10 +21,10 @@ class StorageRequestError(Exception):
 class StorageManagerBase(metaclass=ABCMeta):
     def __init__(
             self,
-            mode,
-            access_key_id,
-            access_key_secret,
-            bucket_name,
+            mode='',
+            access_key_id='',
+            access_key_secret='',
+            bucket_name='',
             endpoint=None,
             internal_endpoint=None,
             cname=None,
@@ -49,6 +49,11 @@ class StorageManagerBase(metaclass=ABCMeta):
 
         self.cname = cname
         self.is_cname = False
+
+        # azure blob 独有的字段
+        self.connection_string = kwargs.get("connection_string")  # azure blob 对象存储使用的连接字符串
+        self.account_name = kwargs.get("account_name")  # azure blob 对象存储需要的字段
+        self.account_key = kwargs.get("account_key")
 
     @abstractmethod
     def create_bucket(self, bucket_name):
@@ -104,14 +109,17 @@ class StorageManagerBase(metaclass=ABCMeta):
     @abstractmethod
     def get_object_meta(self, key: str):
         """获取文件基本元信息，包括该Object的ETag、Size（文件大小）、LastModified，Content-Type，并不返回其内容"""
+        pass
 
     @abstractmethod
     def update_file_headers(self, key, headers: dict):
         """更改Object的元数据信息，包括Content-Type这类标准的HTTP头部"""
+        pass
 
     @abstractmethod
     def file_exists(self, key):
         """检查文件是否存在"""
+        pass
 
     def download(self, key, local_name=None, path=None, is_stream=False, **kwargs):
         """
@@ -154,7 +162,8 @@ class StorageManagerBase(metaclass=ABCMeta):
 
     @abstractmethod
     def upload(self, filepath: Union[str, BufferedReader], key: str):
-        """"""
+        """上传本地文件或文件流"""
+        pass
 
     @abstractmethod
     def get_policy(
