@@ -20,16 +20,16 @@ class StorageController(metaclass=ABCMeta):
     >>> storage_ctrl.public_storage_manage  # 非加密存储控制器
     >>> storage_ctrl.private_storage_manage  # 加密存储控制器
     全局对象存储
-    >>> global_storage_manage = StorageController.sync_init()
-    >>> global_storage_manage.public_storage_manage  # 全局非加密存储控制器
-    >>> global_storage_manage.private_storage_manage  # 全局加密存储控制器
+    >>> global_storage_ctrl = StorageController.sync_init()
+    >>> global_storage_ctrl.public_storage_manage  # 全局非加密存储控制器
+    >>> global_storage_ctrl.private_storage_manage  # 全局加密存储控制器
     """
 
     global_storage_conf = settings.STORAGE_CONF  # 全局对象存储配置
 
-    def __init__(self, organiz_id):
+    def __init__(self, organiz_id: str = ''):
         """
-        不可直接使用，请在 StorageManage.init 初始化
+        不可直接使用，请使用 StorageController.init() / StorageController.sync_init() 初始化
         """
         self.organiz_id = organiz_id
         self.organiz_storage_conf = dict()  # 组织自定义对象存储
@@ -102,7 +102,6 @@ class StorageController(metaclass=ABCMeta):
             image_domain: Optional[str]         # 非加密桶使用，可选
             asset_domain: Optional[str]         # 非加密桶使用，可选
             private_domain: Optional[str]       # 加密桶使用，可选
-            private_cname: Optional[str]        # 加密桶使用，可选
 
         :return: _StorageManage实例，即 ObsManager 或 OssManager
         """
@@ -111,6 +110,7 @@ class StorageController(metaclass=ABCMeta):
             access_key_id=storage_conf['access_key_id'],
             access_key_secret=storage_conf['access_key_secret'],
             endpoint=storage_conf['endpoint'],
+            internal_endpoint=storage_conf.get('internal_endpoint'),
             bucket_name=storage_conf['public_bucket_name'],  # 注意区分加密/非加密存储桶
             image_domain=storage_conf['image_domain'],
             asset_domain=storage_conf['asset_domain'],
@@ -135,7 +135,6 @@ class StorageController(metaclass=ABCMeta):
             image_domain: Optional[str]         # 非加密桶使用，可选
             asset_domain: Optional[str]         # 非加密桶使用，可选
             private_domain: Optional[str]       # 加密桶使用，可选
-            private_cname: Optional[str]        # 加密桶使用，可选
 
         :return: _StorageManage实例，即 ObsManager 或 OssManager
         """
@@ -144,10 +143,10 @@ class StorageController(metaclass=ABCMeta):
             access_key_id=storage_conf['access_key_id'],
             access_key_secret=storage_conf['access_key_secret'],
             endpoint=storage_conf['endpoint'],
+            internal_endpoint=storage_conf.get('internal_endpoint'),
             bucket_name=storage_conf['private_bucket_name'],  # 注意区分加密/非加密存储桶
             image_domain=storage_conf['private_domain'],
             asset_domain=storage_conf['private_domain'],
-            cname=storage_conf['private_cname'],
             scheme=storage_conf.get('scheme', 'https'),
             cache_path=cls.global_storage_conf['cache_path'],  # 来自全局配置
             policy_expire_time=cls.global_storage_conf['policy_expire_time'],  # 来自全局配置

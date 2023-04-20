@@ -7,7 +7,7 @@ with open("README.md", "r", encoding="utf-8") as fh:
 
 setuptools.setup(
     name="yz-core2",  # Replace with your own username
-    version="1.0.40",
+    version="1.0.41",
     author="zhouwe1",
     author_email="zhouwei@live.it",
     description="An ID generator for distributed microservices",
@@ -46,8 +46,8 @@ setuptools.setup(
     extras_require={
         'rpc': ['yzrpc>=0.1'],
         'oss-aliyun': ['oss2>=2.13.1, !=3.0.0'],
-        'oss-huawei': ['esdk-obs-python>=3.22.2'],
+        'obs-huawei': ['esdk-obs-python==3.22.2'],
         'oss-aws': ['boto3==1.17.27'],
-        'oss-minio': ['minio==7.1.12'],
+        'minio': ['minio==7.1.12'],
     }
 )
