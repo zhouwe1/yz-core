@@ -105,20 +105,14 @@ class StorageController(metaclass=ABCMeta):
 
         :return: _StorageManage实例，即 ObsManager 或 OssManager
         """
-        return StorageManage(
-            mode=storage_conf['mode'],
-            access_key_id=storage_conf['access_key_id'],
-            access_key_secret=storage_conf['access_key_secret'],
-            endpoint=storage_conf['endpoint'],
-            internal_endpoint=storage_conf.get('internal_endpoint'),
-            bucket_name=storage_conf['public_bucket_name'],  # 注意区分加密/非加密存储桶
-            image_domain=storage_conf['image_domain'],
-            asset_domain=storage_conf['asset_domain'],
-            scheme=storage_conf.get('scheme', 'https'),
-            cache_path=cls.global_storage_conf['cache_path'],  # 来自全局配置
-            policy_expire_time=cls.global_storage_conf['policy_expire_time'],  # 来自全局配置
-            private_expire_time=cls.global_storage_conf['private_expire_time'],  # 来自全局配置
-        )
+        storage_conf.update({
+            'bucket_name': storage_conf['public_bucket_name'],  # 注意区分加密/非加密存储桶
+            'cache_path': cls.global_storage_conf['cache_path'],  # 来自全局配置
+            'policy_expire_time': cls.global_storage_conf['policy_expire_time'],  # 来自全局配置
+            'private_expire_time': cls.global_storage_conf['private_expire_time'],  # 来自全局配置
+        })
+
+        return StorageManage(storage_conf)
 
     @classmethod
     def _init_private_storage_manage(cls, storage_conf: dict):
@@ -138,17 +132,13 @@ class StorageController(metaclass=ABCMeta):
 
         :return: _StorageManage实例，即 ObsManager 或 OssManager
         """
-        return StorageManage(
-            mode=storage_conf['mode'],
-            access_key_id=storage_conf['access_key_id'],
-            access_key_secret=storage_conf['access_key_secret'],
-            endpoint=storage_conf['endpoint'],
-            internal_endpoint=storage_conf.get('internal_endpoint'),
-            bucket_name=storage_conf['private_bucket_name'],  # 注意区分加密/非加密存储桶
-            image_domain=storage_conf['private_domain'],
-            asset_domain=storage_conf['private_domain'],
-            scheme=storage_conf.get('scheme', 'https'),
-            cache_path=cls.global_storage_conf['cache_path'],  # 来自全局配置
-            policy_expire_time=cls.global_storage_conf['policy_expire_time'],  # 来自全局配置
-            private_expire_time=cls.global_storage_conf['private_expire_time'],  # 来自全局配置
-        )
+        storage_conf.update({
+            'bucket_name': storage_conf['private_bucket_name'],  # 注意区分加密/非加密存储桶
+            'image_domain': storage_conf.get('private_domain'),
+            'asset_domain': storage_conf.get('private_domain'),
+            'cache_path': cls.global_storage_conf['cache_path'],  # 来自全局配置
+            'policy_expire_time': cls.global_storage_conf['policy_expire_time'],  # 来自全局配置
+            'private_expire_time': cls.global_storage_conf['private_expire_time'],  # 来自全局配置
+        })
+
+        return StorageManage(storage_conf)

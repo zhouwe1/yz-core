@@ -15,6 +15,7 @@ import hashlib
 from urllib import parse
 from yzcore.extensions.storage.base import StorageManagerBase, StorageRequestError, IMAGE_FORMAT_SET
 from yzcore.extensions.storage.oss.const import *
+from yzcore.extensions.storage.schemas import OssConfig, StorageMode
 
 try:
     import oss2
@@ -25,9 +26,23 @@ except:
 
 class OssManager(StorageManagerBase):
 
-    def __init__(self, *args, **kwargs):
-        super(OssManager, self).__init__(*args, **kwargs)
+    def __init__(self, conf: OssConfig):
+        self.mode = StorageMode.oss.value
         self.bucket = None
+        self.service = None
+        self.access_key_id = conf.access_key_id
+        self.access_key_secret = conf.access_key_secret
+        self.scheme = conf.scheme
+        self.bucket_name = conf.bucket_name
+        self.endpoint = conf.endpoint
+        self.internal_endpoint = conf.internal_endpoint
+        self.image_domain = conf.image_domain
+        self.asset_domain = conf.asset_domain
+        self.cache_path = conf.cache_path
+        self.expire_time = conf.expire_time
+        self.policy_expire_time = conf.policy_expire_time  # 上传签名有效时间
+        self.private_expire_time = conf.private_expire_time  # 私有桶访问链接有效时间
+
         self.__init()
 
     def __init(self, bucket_name=None):
@@ -35,24 +50,15 @@ class OssManager(StorageManagerBase):
 
         if oss2 is None:
             raise ImportError("'oss2' must be installed to use OssManager")
-        if not any((self.endpoint, self.cname)):
-            raise AttributeError(
-                "One of 'endpoint' and 'cname' must not be None.")
 
         self.auth = oss2.Auth(self.access_key_id, self.access_key_secret)
 
-        # 首先，如果cname存在，则使用自定义域名初始化
-        if self.cname:
-            self.endpoint = self.cname
-            self.is_cname = True
-        # 其次，优先内网endpoint
-        elif self.internal_endpoint:
+        # 优先内网endpoint
+        if self.internal_endpoint:
             self.endpoint = self.internal_endpoint
 
         self.bucket_name = bucket_name if bucket_name else self.bucket_name
-        self.bucket = oss2.Bucket(
-            self.auth, self.endpoint, self.bucket_name, is_cname=self.is_cname
-        )
+        self.bucket = oss2.Bucket(self.auth, self.endpoint, self.bucket_name)
 
         if self.cache_path:
             try:
@@ -343,17 +349,11 @@ class OssManager(StorageManagerBase):
 
     @property
     def host(self):
-        if self.cname:
-            return u'//{}'.format(self.cname)
-        else:
-            return u'//{}.{}'.format(self.bucket_name, self.endpoint.replace('-internal', ''))
+        return u'//{}.{}'.format(self.bucket_name, self.endpoint.replace('-internal', ''))
 
     def get_file_url(self, key, with_scheme=False):
         if not any((self.image_domain, self.asset_domain)):
-            if self.is_cname:
-                resource_url = u"//{}/{}".format(self.cname, key)
-            else:
-                resource_url = u"//{}.{}/{}".format(self.bucket_name, self.endpoint.replace('-internal', ''), key)
+            resource_url = u"//{}.{}/{}".format(self.bucket_name, self.endpoint.replace('-internal', ''), key)
         elif key.split('.')[-1].lower() in IMAGE_FORMAT_SET:
             resource_url = u"//{domain}/{key}".format(domain=self.image_domain, key=key)
         else:

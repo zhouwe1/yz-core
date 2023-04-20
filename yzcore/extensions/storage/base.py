@@ -5,6 +5,7 @@ from io import BufferedReader
 from abc import ABCMeta, abstractmethod
 from yzcore.extensions.storage.utils import create_temp_file
 from yzcore.extensions.storage.const import IMAGE_FORMAT_SET, CONTENT_TYPE
+from yzcore.extensions.storage.schemas import BaseConfig
 from yzcore.logger import get_logger
 from urllib.request import urlopen
 from urllib.error import URLError
@@ -19,36 +20,10 @@ class StorageRequestError(Exception):
 
 
 class StorageManagerBase(metaclass=ABCMeta):
-    def __init__(
-            self,
-            mode,
-            access_key_id,
-            access_key_secret,
-            bucket_name,
-            endpoint=None,
-            internal_endpoint=None,
-            cname=None,
-            cache_path='.',
-            expire_time=30,
-            scheme='https',
-            **kwargs
-    ):
-        self.mode = mode
-        self.access_key_id = access_key_id
-        self.access_key_secret = access_key_secret
-        self.bucket_name = bucket_name
-        self.endpoint = endpoint
-        self.internal_endpoint = internal_endpoint
 
-        self.cache_path = cache_path
-        self.scheme = scheme
-        self.image_domain = kwargs.get("image_domain")
-        self.asset_domain = kwargs.get("asset_domain")
-        self.policy_expire_time = kwargs.get("policy_expire_time", expire_time)
-        self.private_expire_time = kwargs.get("private_expire_time", expire_time)
-
-        self.cname = cname
-        self.is_cname = False
+    @abstractmethod
+    def __init__(self, conf: BaseConfig):
+        pass
 
     @abstractmethod
     def create_bucket(self, bucket_name):

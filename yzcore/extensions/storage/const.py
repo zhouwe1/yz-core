@@ -1,3 +1,5 @@
+from enum import Enum
+
 IMAGE_FORMAT_SET = [
     'bmp', 'jpg', 'jpeg', 'png', 'tif', 'gif', 'pcx', 'tga',
     'exif', 'fpx', 'svg', 'psd', 'cdr', 'pcd', 'dxf', 'ufo',
@@ -16,3 +18,9 @@ CONTENT_TYPE = {
 
     'dds': 'application/octet-stream',
 }
+
+
+class StorageMode(Enum):
+    oss = 'oss'
+    obs = 'obs'
+    minio = 'minio'

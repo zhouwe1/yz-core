@@ -11,6 +11,7 @@ import os
 
 from yzcore.extensions.storage.base import StorageManagerBase, StorageRequestError
 from yzcore.extensions.storage.obs.utils import wrap_request_return_bool
+from yzcore.extensions.storage.schemas import ObsConfig, StorageMode
 
 try:
     import obs
@@ -22,23 +23,34 @@ except:
 
 class ObsManager(StorageManagerBase):
 
-    def __init__(self, *args, **kwargs):
-        super(ObsManager, self).__init__(*args, **kwargs)
+    def __init__(self, conf: ObsConfig):
+        self.mode = StorageMode.obs.value
+        self.access_key_id = conf.access_key_id
+        self.access_key_secret = conf.access_key_secret
+        self.scheme = conf.scheme
+        self.bucket_name = conf.bucket_name
+        self.endpoint = conf.endpoint
+        self.image_domain = conf.image_domain
+        self.asset_domain = conf.asset_domain
+        self.cache_path = conf.cache_path
+        self.expire_time = conf.expire_time
+        self.policy_expire_time = conf.policy_expire_time  # 上传签名有效时间
+        self.private_expire_time = conf.private_expire_time  # 私有桶访问链接有效时间
+
         self.__init()
 
     def __init(self, bucket_name=None):
         """"""
         if obs is None:
             raise ImportError("'esdk-obs-python' must be installed to use ObsManager")
-        # 创建ObsClient实例
-        self.endpoint = self.cname if self.cname else self.endpoint
-        self.is_cname = True if self.cname else False
 
+        self.bucket_name = bucket_name if bucket_name else self.bucket_name
+
+        # 创建ObsClient实例
         self.obsClient = ObsClient(
             access_key_id=self.access_key_id,
             secret_access_key=self.access_key_secret,
             server=self.endpoint,
-            is_cname=self.is_cname,
         )
 
         if self.cache_path:
