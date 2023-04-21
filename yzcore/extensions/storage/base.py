@@ -23,7 +23,17 @@ class StorageManagerBase(metaclass=ABCMeta):
 
     @abstractmethod
     def __init__(self, conf: BaseConfig):
-        pass
+        self.access_key_id = conf.access_key_id
+        self.access_key_secret = conf.access_key_secret
+        self.scheme = conf.scheme
+        self.bucket_name = conf.bucket_name
+        self.endpoint = conf.endpoint
+        self.image_domain = conf.image_domain
+        self.asset_domain = conf.asset_domain
+        self.cache_path = conf.cache_path
+        self.expire_time = conf.expire_time
+        self.policy_expire_time = conf.policy_expire_time  # 上传签名有效时间
+        self.private_expire_time = conf.private_expire_time  # 私有桶访问链接有效时间
 
     @abstractmethod
     def create_bucket(self, bucket_name):
@@ -152,17 +162,11 @@ class StorageManagerBase(metaclass=ABCMeta):
 
     @property
     def host(self):
-        if self.cname:
-            return u'//{}'.format(self.cname)
-        else:
-            return u'//{}.{}'.format(self.bucket_name, self.endpoint)
+        return u'//{}.{}'.format(self.bucket_name, self.endpoint)
 
     def get_file_url(self, key, with_scheme=False):
         if not any((self.image_domain, self.asset_domain)):
-            if self.is_cname:
-                resource_url = u"//{}/{}".format(self.cname, key)
-            else:
-                resource_url = u"//{}.{}/{}".format(self.bucket_name, self.endpoint, key)
+            resource_url = u"//{}.{}/{}".format(self.bucket_name, self.endpoint, key)
         elif key.split('.')[-1].lower() in IMAGE_FORMAT_SET:
             resource_url = u"//{domain}/{key}".format(domain=self.image_domain, key=key)
         else:

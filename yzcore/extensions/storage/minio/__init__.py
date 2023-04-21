@@ -9,6 +9,8 @@ import json
 import os
 
 from yzcore.extensions.storage.base import StorageManagerBase, StorageRequestError, logger, IMAGE_FORMAT_SET
+from yzcore.extensions.storage.schemas import MinioConfig, StorageMode
+from yzcore.utils.time_utils import datetime2str
 from datetime import timedelta, datetime
 
 
@@ -23,8 +25,10 @@ except:
 
 class MinioManager(StorageManagerBase):
 
-    def __init__(self, *args, **kwargs):
-        super(MinioManager, self).__init__(*args, **kwargs)
+    def __init__(self, conf: MinioConfig):
+        super(MinioManager, self).__init__(conf)
+        self.mode = StorageMode.minio.value
+
         self.__init()
 
     def __init(self, bucket_name=None):
@@ -32,9 +36,6 @@ class MinioManager(StorageManagerBase):
 
         if Minio is None:
             raise ImportError("'minio' must be installed to use MinioManager")
-        if not any((self.endpoint, self.cname)):
-            raise AttributeError(
-                "One of 'endpoint' and 'cname' must not be None.")
 
         if bucket_name:
             self.bucket_name = bucket_name
@@ -127,7 +128,7 @@ class MinioManager(StorageManagerBase):
         return {
             'etag': meta.etag,
             'size': meta.size,
-            'last_modified': meta.last_modified,
+            'last_modified': datetime2str(meta.last_modified),
             'content_type': meta.content_type,
         }
 

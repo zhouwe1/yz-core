@@ -24,18 +24,8 @@ except:
 class ObsManager(StorageManagerBase):
 
     def __init__(self, conf: ObsConfig):
+        super(ObsManager, self).__init__(conf)
         self.mode = StorageMode.obs.value
-        self.access_key_id = conf.access_key_id
-        self.access_key_secret = conf.access_key_secret
-        self.scheme = conf.scheme
-        self.bucket_name = conf.bucket_name
-        self.endpoint = conf.endpoint
-        self.image_domain = conf.image_domain
-        self.asset_domain = conf.asset_domain
-        self.cache_path = conf.cache_path
-        self.expire_time = conf.expire_time
-        self.policy_expire_time = conf.policy_expire_time  # 上传签名有效时间
-        self.private_expire_time = conf.private_expire_time  # 私有桶访问链接有效时间
 
         self.__init()
 

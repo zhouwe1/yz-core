@@ -34,7 +34,7 @@ class StorageManage(object):
         elif storage_conf['mode'].lower() == 'oss':
             storage_manage = OssManager(OssConfig(**storage_conf))
         elif storage_conf['mode'].lower() == 'minio':
-            storage_manage = MinioManager(**storage_conf)
+            storage_manage = MinioManager(MinioConfig(**storage_conf))
         else:
             storage_manage = None
         return storage_manage
