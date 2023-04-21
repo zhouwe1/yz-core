@@ -34,7 +34,7 @@ class StorageManage(object):
             mode = StorageMode.__getitem__(storage_conf['mode'].lower()).value
             storage_conf['mode'] = mode
         except KeyError:
-            raise KeyError(f'storage mode must be one of ["oss"|"obs"|"minio"], current is "{storage_conf["mode"]}"')
+            raise KeyError(f'storage mode must be one of ["oss"|"obs"|"minio"|"azure"], current is "{storage_conf["mode"]}"')
 
         if mode == 'obs':
             storage_manage = ObsManager(ObsConfig(**storage_conf))

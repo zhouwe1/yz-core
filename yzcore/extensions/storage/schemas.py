@@ -43,3 +43,5 @@ class AzureConfig(BaseConfig):
     connection_string: str
     account_key: str
     account_name: str
+    access_key_id: Optional[str] = None
+    access_key_secret: Optional[str] = None

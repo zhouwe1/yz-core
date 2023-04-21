@@ -17,7 +17,8 @@ from yzcore.utils.time_utils import datetime2str
 
 
 try:
-    from azure.storage.blob import BlobServiceClient, ContentSettings, ContainerClient, generate_blob_sas
+    from azure.storage.blob import BlobServiceClient, ContentSettings, ContainerClient, generate_blob_sas,\
+        BlobSasPermissions
     from azure.core.exceptions import ResourceExistsError
 except:
     BlobServiceClient = None
@@ -89,7 +90,7 @@ class AzureManager(StorageManagerBase):
         blob_client = self.container_client.get_blob_client(blob=key)
         sas_sign = generate_blob_sas(
             account_name=self.account_name, container_name=self.bucket_name, blob_name=key, account_key=self.account_key,
-            expiry=expire_time, permission='r'
+            expiry=expire_time, permission=BlobSasPermissions(read=True)
         )
         return f'{blob_client.url}?{sas_sign}'
 

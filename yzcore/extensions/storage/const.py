@@ -24,6 +24,7 @@ class StorageMode(Enum):
     oss = 'oss'
     obs = 'obs'
     minio = 'minio'
+    azure = 'azure'
 
 
 class Scheme(Enum):
