@@ -11,7 +11,7 @@ import os
 
 from yzcore.extensions.storage.base import StorageManagerBase, StorageRequestError
 from yzcore.extensions.storage.obs.utils import wrap_request_return_bool
-from yzcore.extensions.storage.schemas import ObsConfig, StorageMode
+from yzcore.extensions.storage.schemas import ObsConfig
 
 try:
     import obs
@@ -25,7 +25,6 @@ class ObsManager(StorageManagerBase):
 
     def __init__(self, conf: ObsConfig):
         super(ObsManager, self).__init__(conf)
-        self.mode = StorageMode.obs.value
 
         self.__init()
 

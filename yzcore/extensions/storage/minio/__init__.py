@@ -9,7 +9,7 @@ import json
 import os
 
 from yzcore.extensions.storage.base import StorageManagerBase, StorageRequestError, logger, IMAGE_FORMAT_SET
-from yzcore.extensions.storage.schemas import MinioConfig, StorageMode
+from yzcore.extensions.storage.schemas import MinioConfig
 from yzcore.utils.time_utils import datetime2str
 from datetime import timedelta, datetime
 
@@ -27,7 +27,6 @@ class MinioManager(StorageManagerBase):
 
     def __init__(self, conf: MinioConfig):
         super(MinioManager, self).__init__(conf)
-        self.mode = StorageMode.minio.value
 
         self.__init()
 

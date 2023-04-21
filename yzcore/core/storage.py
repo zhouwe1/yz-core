@@ -1,6 +1,7 @@
 from yzcore.extensions.storage import StorageManage, StorageRequestError
 from yzcore.default_settings import default_setting as settings
 from abc import ABCMeta, abstractmethod
+from functools import cached_property
 
 
 __all__ = [
@@ -69,12 +70,12 @@ class StorageController(metaclass=ABCMeta):
         :return: dict(**organiz_storage_conf) or None
         """
 
-    @property
+    @cached_property
     def public_storage_manage(self):
         """非加密存储桶控制器"""
         return self._init_public_storage_manage(self.storage_conf)
 
-    @property
+    @cached_property
     def private_storage_manage(self):
         """加密存储桶控制器"""
         return self._init_private_storage_manage(self.storage_conf)
@@ -107,9 +108,9 @@ class StorageController(metaclass=ABCMeta):
         """
         storage_conf.update({
             'bucket_name': storage_conf['public_bucket_name'],  # 注意区分加密/非加密存储桶
-            'cache_path': cls.global_storage_conf['cache_path'],  # 来自全局配置
-            'policy_expire_time': cls.global_storage_conf['policy_expire_time'],  # 来自全局配置
-            'private_expire_time': cls.global_storage_conf['private_expire_time'],  # 来自全局配置
+            'cache_path': cls.global_storage_conf.get('cache_path'),  # 来自全局配置
+            'policy_expire_time': cls.global_storage_conf.get('policy_expire_time'),  # 来自全局配置
+            'private_expire_time': cls.global_storage_conf.get('private_expire_time'),  # 来自全局配置
         })
 
         return StorageManage(storage_conf)
@@ -136,9 +137,9 @@ class StorageController(metaclass=ABCMeta):
             'bucket_name': storage_conf['private_bucket_name'],  # 注意区分加密/非加密存储桶
             'image_domain': storage_conf.get('private_domain'),
             'asset_domain': storage_conf.get('private_domain'),
-            'cache_path': cls.global_storage_conf['cache_path'],  # 来自全局配置
-            'policy_expire_time': cls.global_storage_conf['policy_expire_time'],  # 来自全局配置
-            'private_expire_time': cls.global_storage_conf['private_expire_time'],  # 来自全局配置
+            'cache_path': cls.global_storage_conf.get('cache_path'),  # 来自全局配置
+            'policy_expire_time': cls.global_storage_conf.get('policy_expire_time'),  # 来自全局配置
+            'private_expire_time': cls.global_storage_conf.get('private_expire_time'),  # 来自全局配置
         })
 
         return StorageManage(storage_conf)

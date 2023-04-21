@@ -24,3 +24,8 @@ class StorageMode(Enum):
     oss = 'oss'
     obs = 'obs'
     minio = 'minio'
+
+
+class Scheme(Enum):
+    http = 'http'
+    https = 'https'

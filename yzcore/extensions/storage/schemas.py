@@ -1,5 +1,6 @@
-from pydantic import BaseModel, ValidationError
-from .const import StorageMode
+from typing import Optional
+from pydantic import BaseModel, root_validator
+from .const import StorageMode, Scheme
 
 
 class BaseConfig(BaseModel):
@@ -8,14 +9,22 @@ class BaseConfig(BaseModel):
     access_key_secret: str
     bucket_name: str
     endpoint: str
-    scheme: str = 'https'
-    image_domain: str = None
-    asset_domain: str = None
-    expire_time: int = 30
+    scheme: Optional[Scheme] = Scheme.https.value
+    image_domain: Optional[str] = None
+    asset_domain: Optional[str] = None
 
-    cache_path: str = '.'
-    policy_expire_time: int = expire_time  # 上传签名有效时间
-    private_expire_time: int = expire_time  # 私有桶访问链接有效时间
+    cache_path: Optional[str] = '.'
+    policy_expire_time: Optional[int]  # 上传签名有效时间
+    private_expire_time: Optional[int]  # 私有桶访问链接有效时间
+
+    @root_validator
+    def base_validator(cls, values):
+        values['mode'] = values['mode'].value
+        if not values['policy_expire_time']:
+            values['policy_expire_time'] = 30
+        if not values['private_expire_time']:
+            values['private_expire_time'] = 3600
+        return values
 
 
 class OssConfig(BaseConfig):

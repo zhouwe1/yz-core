@@ -15,7 +15,7 @@ import hashlib
 from urllib import parse
 from yzcore.extensions.storage.base import StorageManagerBase, StorageRequestError, IMAGE_FORMAT_SET
 from yzcore.extensions.storage.oss.const import *
-from yzcore.extensions.storage.schemas import OssConfig, StorageMode
+from yzcore.extensions.storage.schemas import OssConfig
 
 try:
     import oss2
@@ -28,7 +28,6 @@ class OssManager(StorageManagerBase):
 
     def __init__(self, conf: OssConfig):
         super(OssManager, self).__init__(conf)
-        self.mode = StorageMode.oss.value
         self.internal_endpoint = conf.internal_endpoint
         self.bucket = None
         self.service = None

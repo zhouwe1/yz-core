@@ -2,7 +2,7 @@ from yzcore.extensions.storage.oss import OssManager
 from yzcore.extensions.storage.obs import ObsManager
 from yzcore.extensions.storage.minio import MinioManager
 from yzcore.extensions.storage.base import StorageRequestError
-from yzcore.extensions.storage.const import IMAGE_FORMAT_SET
+from yzcore.extensions.storage.const import IMAGE_FORMAT_SET, StorageMode
 from yzcore.extensions.storage.schemas import OssConfig, ObsConfig, MinioConfig
 
 
@@ -29,11 +29,17 @@ class StorageManage(object):
     """
 
     def __new__(cls, storage_conf: dict):
-        if storage_conf['mode'].lower() == 'obs':
+        try:
+            mode = StorageMode.__getitem__(storage_conf['mode'].lower()).value
+            storage_conf['mode'] = mode
+        except KeyError:
+            raise KeyError(f'storage mode must be one of ["oss"|"obs"|"minio"], current is "{storage_conf["mode"]}"')
+
+        if mode == 'obs':
             storage_manage = ObsManager(ObsConfig(**storage_conf))
-        elif storage_conf['mode'].lower() == 'oss':
+        elif mode == 'oss':
             storage_manage = OssManager(OssConfig(**storage_conf))
-        elif storage_conf['mode'].lower() == 'minio':
+        elif mode == 'minio':
             storage_manage = MinioManager(MinioConfig(**storage_conf))
         else:
             storage_manage = None
