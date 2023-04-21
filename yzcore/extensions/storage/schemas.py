@@ -37,3 +37,9 @@ class ObsConfig(BaseConfig):
 
 class MinioConfig(BaseConfig):
     pass
+
+
+class AzureConfig(BaseConfig):
+    connection_string: str
+    account_key: str
+    account_name: str

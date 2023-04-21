@@ -222,7 +222,7 @@ class OssManager(StorageManagerBase):
     def upload(self, filepath, key: str, num_threads=2, multipart_threshold=None):
         """
         上传oss文件
-        :param filepath:
+        :param filepath: 文件路径 或 文件流
         :param key:
         :param num_threads:
         :param multipart_threshold:

@@ -26,7 +26,7 @@ class StorageManagerBase(metaclass=ABCMeta):
         self.mode = conf.mode
         self.access_key_id = conf.access_key_id
         self.access_key_secret = conf.access_key_secret
-        self.scheme = conf.scheme
+        self.scheme = conf.scheme.value
         self.bucket_name = conf.bucket_name
         self.endpoint = conf.endpoint
         self.image_domain = conf.image_domain
@@ -130,16 +130,14 @@ class StorageManagerBase(metaclass=ABCMeta):
     @abstractmethod
     def download_stream(self, key, **kwargs):
         """下载文件流"""
-        pass
 
     @abstractmethod
     def download_file(self, key, local_name, **kwargs):
         """下载文件"""
-        pass
 
     @abstractmethod
     def upload(self, filepath: Union[str, BufferedReader], key: str):
-        """"""
+        """上传本地文件或文件流"""
 
     @abstractmethod
     def get_policy(

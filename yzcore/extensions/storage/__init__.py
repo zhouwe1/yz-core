@@ -1,9 +1,10 @@
 from yzcore.extensions.storage.oss import OssManager
 from yzcore.extensions.storage.obs import ObsManager
 from yzcore.extensions.storage.minio import MinioManager
+from yzcore.extensions.storage.azure import AzureManager
 from yzcore.extensions.storage.base import StorageRequestError
 from yzcore.extensions.storage.const import IMAGE_FORMAT_SET, StorageMode
-from yzcore.extensions.storage.schemas import OssConfig, ObsConfig, MinioConfig
+from yzcore.extensions.storage.schemas import OssConfig, ObsConfig, MinioConfig, AzureConfig
 
 
 __all__ = [
@@ -41,6 +42,8 @@ class StorageManage(object):
             storage_manage = OssManager(OssConfig(**storage_conf))
         elif mode == 'minio':
             storage_manage = MinioManager(MinioConfig(**storage_conf))
+        elif mode == 'azure':
+            storage_manage = AzureManager(AzureConfig(**storage_conf))
         else:
             storage_manage = None
         return storage_manage
