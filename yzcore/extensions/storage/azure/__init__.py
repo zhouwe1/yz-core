@@ -38,7 +38,7 @@ class AzureManager(StorageManagerBase):
         """初始化对象"""
 
         if BlobServiceClient is None:
-            raise ImportError("'azure-storage-blob' must be installed to use AzureBlobManager")
+            raise ImportError("'azure-storage-blob' must be installed to use AzureManager")
 
         if bucket_name:
             self.bucket_name = bucket_name

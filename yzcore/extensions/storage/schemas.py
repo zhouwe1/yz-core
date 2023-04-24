@@ -9,7 +9,7 @@ class BaseConfig(BaseModel):
     access_key_secret: str
     bucket_name: str
     endpoint: str
-    scheme: Optional[Scheme] = Scheme.https.value
+    scheme: Optional[Scheme] = Scheme.https
     image_domain: Optional[str] = None
     asset_domain: Optional[str] = None
 
