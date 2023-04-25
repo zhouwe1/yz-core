@@ -9,7 +9,6 @@ def wrap_request_return_bool(func):
     def wrap_func(*args, **kwargs):
         try:
             resp = func(*args, **kwargs)
-            print(resp)
             if resp.status < 300:
                 return True
             if resp.status == 403:

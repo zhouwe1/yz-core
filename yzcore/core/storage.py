@@ -1,7 +1,11 @@
 from yzcore.extensions.storage import StorageManage, StorageRequestError
 from yzcore.default_settings import default_setting as settings
 from abc import ABCMeta, abstractmethod
-from functools import cached_property
+try:
+    # python3.8
+    from functools import cached_property
+except ImportError:
+    from yzcore.utils.cache import cached_property
 
 
 __all__ = [
