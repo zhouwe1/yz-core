@@ -52,8 +52,12 @@ class ObsManager(StorageManagerBase):
     def create_bucket(self, bucket_name=None, location='cn-south-1'):
         """创建bucket，并且作为当前操作bucket"""
         resp = self.obsClient.createBucket(bucket_name, location=location)
-        self.bucket_name = bucket_name
-        return resp
+        if resp.status < 300:
+            self.bucket_name = bucket_name
+            return resp
+        else:
+            raise StorageRequestError(
+                f"static_code: {resp.status}, errorCode: {resp.errorCode}. Message: {resp.errorMessage}.")
 
     def list_buckets(self):
         resp = self.obsClient.listBuckets(isQueryLocation=True)
@@ -61,7 +65,7 @@ class ObsManager(StorageManagerBase):
             return resp.body.buckets
         else:
             raise StorageRequestError(
-                f"errorCode: {resp.errorCode}. Message: {resp.errorMessage}.")
+                f"static_code: {resp.status}, errorCode: {resp.errorCode}. Message: {resp.errorMessage}.")
 
     @wrap_request_return_bool
     def is_exist_bucket(self, bucket_name=None):
@@ -100,6 +104,9 @@ class ObsManager(StorageManagerBase):
         _result = []
         resp = self.obsClient.listObjects(self.bucket_name, prefix=prefix, marker=marker, delimiter=delimiter,
                                           max_keys=max_keys)
+        if resp.status >= 300:
+            raise StorageRequestError(
+                f"static_code: {resp.status}, errorCode: {resp.errorCode}. Message: {resp.errorMessage}.")
         for obj in resp.body.contents:
             _result.append({
                 'key': obj['key'],
@@ -192,7 +199,7 @@ class ObsManager(StorageManagerBase):
 
     def file_exists(self, key):
         """检查文件是否存在"""
-        resp = self.obsClient.getObjectMetadata(self.bucket_name, key)
+        resp = self.obsClient.headObject(self.bucket_name, key)
         if resp.get('status') == 200:
             return True
         elif resp.get('status') == 404:
@@ -220,4 +227,7 @@ class ObsManager(StorageManagerBase):
                 cors_dict['allowed_origins'] = rule.allowedOrigin
                 cors_dict['allowed_headers'] = rule.allowedHeader
                 cors_dict['allowed_methods'] = rule.allowedMethod
-        return cors_dict
+            return cors_dict
+        else:
+            raise StorageRequestError(
+                f"static_code: {resp.status}, errorCode: {resp.errorCode}. Message: {resp.errorMessage}.")

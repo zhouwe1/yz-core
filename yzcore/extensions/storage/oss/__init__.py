@@ -94,21 +94,6 @@ class OssManager(StorageManagerBase):
             pass
         return cors_dict
 
-    def iter_buckets(self, prefix='', marker='', max_keys=100, max_retries=None):
-        """
-        :param prefix: 只列举匹配该前缀的Bucket
-        :param marker: 分页符。只列举Bucket名字典序在此之后的Bucket
-        :param max_keys: 每次调用 `list_buckets` 时的max_keys参数。注意迭代器返回的数目可能会大于该值。
-        :param max_retries:
-        :return:
-        """
-        if not hasattr(self, 'service'):
-            self.service = oss2.Service(self.auth, self.endpoint)
-
-        return oss2.BucketIterator(
-            self.service, prefix=prefix, marker=marker,
-            max_keys=max_keys, max_retries=max_retries)
-
     def list_buckets(self, prefix='', marker='', max_keys=100, params=None):
         """根据前缀罗列用户的Bucket。
 

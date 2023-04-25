@@ -56,6 +56,11 @@ class NoPermission(HTTPException):
         super().__init__(status_code=401, detail=detail, headers=headers)
 
 
+class Forbidden(HTTPException):
+    def __init__(self, detail: Any = 'Access Denied', headers: dict = None):
+        super().__init__(status_code=403, detail=detail, headers=headers)
+
+
 class UnknownError(HTTPException):
     def __init__(self, detail: Any = 'Unknown error', headers: dict = None):
         super().__init__(status_code=500, detail=detail, headers=headers)
