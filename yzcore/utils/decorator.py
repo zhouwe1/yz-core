@@ -3,7 +3,6 @@
 # copied from django.utils.functional.cached_property
 class cached_property:
     """
-
     Decorator that converts a method with a single self argument into a
     property cached on the instance.
 
@@ -44,3 +43,21 @@ class cached_property:
             return self
         res = instance.__dict__[self.name] = self.func(instance)
         return res
+
+
+# copied from django.utils.functional.classproperty
+class classproperty:
+    """
+    Decorator that converts a method with a single cls argument into a property
+    that can be accessed directly from the class.
+    """
+
+    def __init__(self, method=None):
+        self.fget = method
+
+    def __get__(self, instance, cls=None):
+        return self.fget(cls)
+
+    def getter(self, method):
+        self.fget = method
+        return self

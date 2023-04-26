@@ -1,11 +1,13 @@
 from yzcore.extensions.storage import StorageManage, StorageRequestError
 from yzcore.default_settings import default_setting as settings
 from abc import ABCMeta, abstractmethod
+from yzcore.utils.decorator import classproperty
+
 try:
-    # python3.8
+    # >= python3.8
     from functools import cached_property
 except ImportError:
-    from yzcore.utils.cache import cached_property
+    from yzcore.utils.decorator import cached_property
 
 
 __all__ = [
@@ -30,7 +32,10 @@ class StorageController(metaclass=ABCMeta):
     >>> global_storage_ctrl.private_storage_manage  # 全局加密存储控制器
     """
 
-    global_storage_conf = settings.STORAGE_CONF  # 全局对象存储配置
+    @classproperty
+    def global_storage_conf(cls):
+        """全局对象存储配置"""
+        return settings.STORAGE_CONF
 
     def __init__(self, organiz_id: str = ''):
         """
