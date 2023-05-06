@@ -175,6 +175,23 @@ class AzureManager(StorageManagerBase):
         except Exception as e:
             raise StorageRequestError(f'azure blob upload error: {e}')
 
-    def get_policy(self, filepath: str, callback_url: str, callback_data: dict = None,
-                   callback_content_type: str = "application/json"):
+    def get_policy(
+            self,
+            filepath: str,
+            callback_url: str,
+            callback_data: dict = None,
+            callback_content_type: str = "application/json",
+            callback_directly: bool = True,
+    ):
+        """
+        授权给第三方上传
+        :param filepath:
+        :param callback_url: 对象存储的回调地址
+        :param callback_data: 需要回传的参数
+        :param callback_content_type: 回调时的Content-Type
+               "application/json"
+               "application/x-www-form-urlencoded"
+        :param callback_directly: True 由对象存储自动发起回调 / False 需要前端主动发起回调
+        :return:
+        """
         pass

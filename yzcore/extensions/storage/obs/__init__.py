@@ -166,6 +166,7 @@ class ObsManager(StorageManagerBase):
                "application/x-www-form-urlencoded"
                 华为云目前只能用application/json格式，用x-www-form-urlencoded时回调数据会在url中
         :param callback_directly: True OBS直接发起回调 / False 由前端发起回调
+                由于华为云只有单az模式支持回调，多az不支持，可以根据不同情况选择obs回调或者前端发起回调
         :return:
         """
         if callback_directly:
