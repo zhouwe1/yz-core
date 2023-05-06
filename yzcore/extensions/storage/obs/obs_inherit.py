@@ -25,16 +25,17 @@ class ObsClient(_ObsClient):
 
         formParams = self._parse_post_params(formParams, securityProvider, is_v4,
                                              bucketName, objectKey, longDate, shortDate)
-
-        policy = ['{"expiration":"']
-        policy.append(expires)
-        policy.append('", "callback":[')
+        policy = [f'{{"expiration":"{expires}",']
 
         # 添加callback数据
-        policy.append('{"url":"' + formParams.get('url', '') + '"},')
-        policy.append('{"body":"' + formParams.get('body', '') + '"},')
-        policy.append('{"body-type":"' + formParams.get('body-type', '') + '"},')
-        policy.append('], "conditions":[')
+        if formParams.get('url'):
+            policy.append('"callback":[')
+            policy.append(f'{{"url":"{formParams.get("url", "")}"}},')
+            policy.append(f'{{"body":"{formParams.get("body", "")}"}},')
+            policy.append(f'{{"body-type":"{formParams.get("body-type", "")}"}},')
+            policy.append('], ')
+
+        policy.append('"conditions":[')
 
         matchAnyBucket = True
         matchAnyKey = True
@@ -49,6 +50,8 @@ class ObsClient(_ObsClient):
                     matchAnyBucket = False
                 elif key == 'key':
                     matchAnyKey = False
+                    policy.append(f'["starts-with", "$key", "{value}"],')
+                    continue
 
                 if key not in const.ALLOWED_REQUEST_HTTP_HEADER_METADATA_NAMES \
                         and not key.startswith(self.ha._get_header_prefix()) \

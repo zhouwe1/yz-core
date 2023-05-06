@@ -152,7 +152,9 @@ class ObsManager(StorageManagerBase):
             filepath: str,
             callback_url: str,
             callback_data: dict = None,
-            callback_content_type: str = "application/json"):
+            callback_content_type: str = "application/json",
+            callback_directly: bool = True,
+    ):
         """
         授权给第三方上传
 
@@ -163,22 +165,27 @@ class ObsManager(StorageManagerBase):
                "application/json"
                "application/x-www-form-urlencoded"
                 华为云目前只能用application/json格式，用x-www-form-urlencoded时回调数据会在url中
+        :param callback_directly: True OBS直接发起回调 / False 由前端发起回调
         :return:
         """
-        callback_body = '{"filepath":"$(key)","etag":"$(etag)","size":$(fsize),"mime_type":"$(ext)",' \
-                        '"data":' \
-                        + json.dumps(callback_data) + '}'
+        if callback_directly:
+            callback_body = '{"filepath":"$(key)","etag":"$(etag)","size":$(fsize),"mime_type":"$(ext)",' \
+                            '"data":' \
+                            + json.dumps(callback_data) + '}'
 
-        callback_body_plain = json.dumps(callback_body).strip().encode()
-        base64_callback_body = base64.b64encode(callback_body_plain)
+            callback_body_plain = json.dumps(callback_body).strip().encode()
+            base64_callback_body = base64.b64encode(callback_body_plain)
 
-        form_param = {
-            'body': base64_callback_body.decode(),
-            'url': callback_url,
-            'body-type': callback_content_type,
-            # 'success_action_status': '200',
-        }
-        res = self.post_sign_url(key=None, form_param=form_param)
+            form_param = {
+                'body': base64_callback_body.decode(),
+                'url': callback_url,
+                'body-type': callback_content_type,
+                # 'success_action_status': '200',
+            }
+        else:
+            form_param = {}
+
+        res = self.post_sign_url(key=filepath, form_param=form_param)
 
         data = dict(
             mode='obs',
@@ -188,6 +195,8 @@ class ObsManager(StorageManagerBase):
             signature=res.signature,
             dir=filepath
         )
+        if not callback_directly:
+            data['callback'] = {'url': callback_url, 'data': callback_data}
         return data
 
     def update_file_headers(self, key, headers: dict):

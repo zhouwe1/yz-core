@@ -145,7 +145,7 @@ class StorageManagerBase(metaclass=ABCMeta):
             filepath: str,
             callback_url: str,
             callback_data: dict = None,
-            callback_content_type: str = "application/json"
+            callback_content_type: str = "application/json",
     ):
         """
         授权给第三方上传
