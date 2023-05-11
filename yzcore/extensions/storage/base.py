@@ -276,14 +276,17 @@ class StorageManagerBase(metaclass=ABCMeta):
         ext = filename.split('.')[-1].lower()
         return CONTENT_TYPE.get(ext, 'application/octet-stream')
 
-    def get_key_from_url(self, url):
+    def get_key_from_url(self, url, urldecode=False):
         """从URL中获取对象存储key"""
         if url.startswith('//'):
             url = 'https:' + url
         elif not url.startswith('http'):
             url = 'https://' + url
         url_parse = urlparse(url)
-        return url_parse.path[1:]  # 去掉最前面的 /
+        path = url_parse.path
+        if urldecode:
+            path = unquote(path)
+        return path[1:]  # 去掉最前面的 /
 
     @staticmethod
     def get_filename(key):

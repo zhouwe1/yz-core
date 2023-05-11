@@ -7,6 +7,7 @@
 """
 import json
 import os
+from urllib.parse import unquote
 
 from yzcore.extensions.storage.base import StorageManagerBase, StorageRequestError, logger, IMAGE_FORMAT_SET
 from yzcore.extensions.storage.schemas import MinioConfig
@@ -202,9 +203,12 @@ class MinioManager(StorageManagerBase):
     def host(self):
         return u'//{}/{}'.format(self.endpoint, self.bucket_name)
 
-    def get_key_from_url(self, url):
+    def get_key_from_url(self, url, urldecode=False):
         """从URL中获取对象存储key"""
-        return url.split(self.bucket_name + '/')[-1]
+        path = url.split(self.bucket_name + '/')[-1]
+        if urldecode:
+            path = unquote(path)
+        return path
 
     def get_file_url(self, key, with_scheme=False):
         if not any((self.image_domain, self.asset_domain)):

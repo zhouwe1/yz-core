@@ -10,6 +10,7 @@ from datetime import datetime, timedelta
 import os
 from io import BufferedReader, BytesIO
 from typing import Union
+from urllib.parse import unquote
 
 from yzcore.extensions.storage.base import StorageManagerBase, StorageRequestError, IMAGE_FORMAT_SET
 from yzcore.extensions.storage.schemas import AzureConfig
@@ -117,9 +118,12 @@ class AzureManager(StorageManagerBase):
     def host(self):
         return u'//{}/{}'.format(self.endpoint, self.bucket_name)
 
-    def get_key_from_url(self, url):
+    def get_key_from_url(self, url, urldecode=False):
         """从URL中获取对象存储key"""
-        return url.split(self.bucket_name + '/')[-1]
+        path = url.split(self.bucket_name + '/')[-1]
+        if urldecode:
+            path = unquote(path)
+        return path
 
     def iter_objects(self, prefix='', marker=None, delimiter=None, max_keys=100):
         objects = self.container_client.list_blobs(name_starts_with=prefix, results_per_page=max_keys)

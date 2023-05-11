@@ -18,6 +18,7 @@ __all__ = [
     "datetime2timestamp",
     "timestamp2datetime",
     "datetime2str",
+    "timestamp2str",
 ]
 
 
@@ -80,4 +81,15 @@ def datetime2str(dt: datetime.datetime, fmt='%Y-%m-%d %H:%M:%S'):
     """
     if dt.tzinfo:
         dt = dt.astimezone(Beijing)
+    return dt.strftime(fmt)
+
+
+def timestamp2str(timestamp, fmt='%Y-%m-%d %H:%M:%S'):
+    """
+    时间戳转字符串
+    :param timestamp: int|float
+    :param fmt:
+    :return: "2023-04-18 18:54:59"
+    """
+    dt = datetime.datetime.fromtimestamp(timestamp, tz=Beijing)
     return dt.strftime(fmt)
