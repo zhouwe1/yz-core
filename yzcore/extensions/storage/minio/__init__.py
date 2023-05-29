@@ -28,6 +28,8 @@ class MinioManager(StorageManagerBase):
 
     def __init__(self, conf: MinioConfig):
         super(MinioManager, self).__init__(conf)
+        self.internal_endpoint = conf.internal_endpoint
+        self.internal_minioClient = None
 
         self.__init()
 
@@ -47,19 +49,37 @@ class MinioManager(StorageManagerBase):
             secure=True if self.scheme == 'https' else False,
         )
 
+        if self.internal_endpoint:
+            self.internal_minioClient = Minio(
+                self.internal_endpoint,
+                access_key=self.access_key_id,
+                secret_key=self.access_key_secret,
+                secure=True if self.scheme == 'https' else False,
+            )
+
         if self.cache_path:
             try:
                 os.makedirs(self.cache_path)
             except OSError:
                 pass
 
+    def _internal_minio_client_first(self):
+        """优先使用内网连接minio服务"""
+        if self.internal_endpoint:
+            client = self.internal_minioClient
+        else:
+            client = self.minioClient
+        return client
+
     def get_bucket_cors(self):
         """返回的内容格式和OSS/OBS差异太大"""
-        result = self.minioClient.get_bucket_policy(self.bucket_name)
+        client = self._internal_minio_client_first()
+        result = client.get_bucket_policy(self.bucket_name)
         return json.loads(result)
 
     def set_bucket_cors(self, policy: dict):
-        return self.minioClient.set_bucket_policy(self.bucket_name, policy)
+        client = self._internal_minio_client_first()
+        return client.set_bucket_policy(self.bucket_name, policy)
 
     def _cors_check(self):
         passed = False
@@ -80,21 +100,25 @@ class MinioManager(StorageManagerBase):
 
     def create_bucket(self, bucket_name=None):
         """创建bucket，并且作为当前操作bucket"""
-        self.minioClient.make_bucket(bucket_name)
+        client = self._internal_minio_client_first()
+        client.make_bucket(bucket_name)
         self.bucket_name = bucket_name
 
     def list_buckets(self):
-        return self.minioClient.list_buckets()
+        client = self._internal_minio_client_first()
+        return client.list_buckets()
 
     def is_exist_bucket(self, bucket_name=None):
+        client = self._internal_minio_client_first()
         if bucket_name is None:
             bucket_name = self.bucket_name
-        return self.minioClient.bucket_exists(bucket_name)
+        return client.bucket_exists(bucket_name)
 
     def delete_bucket(self, bucket_name=None):
+        client = self._internal_minio_client_first()
         if bucket_name is None:
             bucket_name = self.bucket_name
-        return self.minioClient.remove_bucket(bucket_name)
+        return client.remove_bucket(bucket_name)
 
     def get_sign_url(self, key, expire=0):
         expire_time = timedelta(seconds=expire or self.private_expire_time)
@@ -112,7 +136,8 @@ class MinioManager(StorageManagerBase):
         return self.minioClient.presigned_put_object(self.bucket_name, key)
 
     def iter_objects(self, prefix='', marker=None, delimiter=None, max_keys=100):
-        objects = self.minioClient.list_objects(self.bucket_name, prefix=prefix, recursive=True)
+        client = self._internal_minio_client_first()
+        objects = client.list_objects(self.bucket_name, prefix=prefix, recursive=True)
         _result = []
         for obj in objects:
             _result.append({
@@ -124,7 +149,8 @@ class MinioManager(StorageManagerBase):
 
     def get_object_meta(self, key: str):
         """获取文件基本元信息，包括该Object的ETag、Size（文件大小）、LastModified，Content-Type，并不返回其内容"""
-        meta = self.minioClient.stat_object(self.bucket_name, key)
+        client = self._internal_minio_client_first()
+        meta = client.stat_object(self.bucket_name, key)
         return {
             'etag': meta.etag,
             'size': meta.size,
@@ -133,12 +159,14 @@ class MinioManager(StorageManagerBase):
         }
 
     def update_file_headers(self, key, headers: dict):
-        self.minioClient.copy_object(self.bucket_name, key, CopySource(self.bucket_name, key), metadata=headers, metadata_directive='REPLACE')
+        client = self._internal_minio_client_first()
+        client.copy_object(self.bucket_name, key, CopySource(self.bucket_name, key), metadata=headers, metadata_directive='REPLACE')
         return True
 
     def file_exists(self, key):
+        client = self._internal_minio_client_first()
         try:
-            self.minioClient.stat_object(self.bucket_name, key)
+            client.stat_object(self.bucket_name, key)
             return True
         except S3Error as e:
             if e.code == 'NoSuchKey':
@@ -146,10 +174,12 @@ class MinioManager(StorageManagerBase):
             raise e
 
     def download_stream(self, key, **kwargs):
-        return self.minioClient.get_object(self.bucket_name, key)
+        client = self._internal_minio_client_first()
+        return client.get_object(self.bucket_name, key)
 
     def download_file(self, key, local_name, **kwargs):
-        self.minioClient.fget_object(self.bucket_name, key, local_name)
+        client = self._internal_minio_client_first()
+        client.fget_object(self.bucket_name, key, local_name)
 
     def upload(self, filepath, key: str):
         """
@@ -157,13 +187,14 @@ class MinioManager(StorageManagerBase):
         :param filepath:
         :param key:
         """
+        client = self._internal_minio_client_first()
         try:
             content_type = self.parse_content_type(key)
 
             if isinstance(filepath, str):
-                self.minioClient.fput_object(self.bucket_name, key, filepath, content_type=content_type)
+                client.fput_object(self.bucket_name, key, filepath, content_type=content_type)
             else:
-                self.minioClient.put_object(self.bucket_name, key, filepath, length=-1, content_type=content_type, part_size=1024*1024*5)
+                client.put_object(self.bucket_name, key, filepath, length=-1, content_type=content_type, part_size=1024*1024*5)
             return self.get_file_url(key)
         except Exception as e:
             raise StorageRequestError(f'minio upload error: {e}')

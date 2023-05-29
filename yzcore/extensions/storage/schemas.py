@@ -36,7 +36,7 @@ class ObsConfig(BaseConfig):
 
 
 class MinioConfig(BaseConfig):
-    pass
+    internal_endpoint: str = None
 
 
 class AzureConfig(BaseConfig):
