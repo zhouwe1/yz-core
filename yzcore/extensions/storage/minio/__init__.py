@@ -67,11 +67,10 @@ class MinioManager(StorageManagerBase):
 
     def _internal_minio_client_first(self):
         """优先使用内网连接minio服务"""
-        if self.internal_endpoint:
-            client = self.internal_minioClient
+        if self.internal_minioClient:
+            return self.internal_minioClient
         else:
-            client = self.minioClient
-        return client
+            return self.minioClient
 
     def get_bucket_cors(self):
         """返回的内容格式和OSS/OBS差异太大"""
