@@ -29,6 +29,8 @@ class MinioManager(StorageManagerBase):
     def __init__(self, conf: MinioConfig):
         super(MinioManager, self).__init__(conf)
         self.internal_endpoint = conf.internal_endpoint
+        # 禁用internal_endpoint, 默认为False，只有windows转换机不在k8s集群才需要禁用
+        self.disable_internal_endpoint = conf.disable_internal_endpoint
         self.internal_minioClient = None
 
         self.__init()
@@ -49,7 +51,7 @@ class MinioManager(StorageManagerBase):
             secure=True if self.scheme == 'https' else False,
         )
 
-        if self.internal_endpoint:
+        if self.internal_endpoint and not self.disable_internal_endpoint:
             self.internal_minioClient = Minio(
                 self.internal_endpoint,
                 access_key=self.access_key_id,

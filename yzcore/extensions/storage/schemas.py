@@ -37,6 +37,7 @@ class ObsConfig(BaseConfig):
 
 class MinioConfig(BaseConfig):
     internal_endpoint: str = None
+    disable_internal_endpoint: bool = False
 
 
 class AzureConfig(BaseConfig):
