@@ -13,7 +13,7 @@ import hmac
 import datetime
 import hashlib
 from urllib import parse
-from yzcore.extensions.storage.base import StorageManagerBase, StorageRequestError, IMAGE_FORMAT_SET
+from yzcore.extensions.storage.base import StorageManagerBase, StorageRequestError
 from yzcore.extensions.storage.oss.const import *
 from yzcore.extensions.storage.schemas import OssConfig
 
@@ -41,13 +41,13 @@ class OssManager(StorageManagerBase):
             raise ImportError("'oss2' must be installed to use OssManager")
 
         self.auth = oss2.Auth(self.access_key_id, self.access_key_secret)
+        self.bucket_name = bucket_name if bucket_name else self.bucket_name
 
         # 优先内网endpoint
         if self.internal_endpoint:
-            self.endpoint = self.internal_endpoint
-
-        self.bucket_name = bucket_name if bucket_name else self.bucket_name
-        self.bucket = oss2.Bucket(self.auth, self.endpoint, self.bucket_name)
+            self.bucket = oss2.Bucket(self.auth, self.internal_endpoint, self.bucket_name)
+        else:
+            self.bucket = oss2.Bucket(self.auth, self.endpoint, self.bucket_name)
 
         if self.cache_path:
             try:
@@ -322,18 +322,3 @@ class OssManager(StorageManagerBase):
             'last_modified': meta.headers['Last-Modified'],
             'content_type': meta.headers['Content-Type']
         }
-
-    @property
-    def host(self):
-        return u'//{}.{}'.format(self.bucket_name, self.endpoint.replace('-internal', ''))
-
-    def get_file_url(self, key, with_scheme=False):
-        if not any((self.image_domain, self.asset_domain)):
-            resource_url = u"//{}.{}/{}".format(self.bucket_name, self.endpoint.replace('-internal', ''), key)
-        elif key.split('.')[-1].lower() in IMAGE_FORMAT_SET:
-            resource_url = u"//{domain}/{key}".format(domain=self.image_domain, key=key)
-        else:
-            resource_url = u"//{domain}/{key}".format(domain=self.asset_domain, key=key)
-        if with_scheme:
-            resource_url = self.scheme + ':' + resource_url
-        return resource_url
