@@ -127,11 +127,12 @@ class MinioManager(StorageManagerBase):
         return '//' + url.split('//', 1)[-1]
 
     def post_sign_url(self, key):
+        client = self._internal_minio_client_first()
         expire_time = datetime.now() + timedelta(seconds=self.policy_expire_time)
         policy = PostPolicy(bucket_name=self.bucket_name, expiration=expire_time)
         policy.add_starts_with_condition('$key', key)
         # policy.add_content_length_range_condition(1, 1024*1024*1024)  # 限制文件大小
-        return self.minioClient.presigned_post_policy(policy)
+        return client.presigned_post_policy(policy)
 
     def put_sign_url(self, key):
         return self.minioClient.presigned_put_object(self.bucket_name, key)
