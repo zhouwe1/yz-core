@@ -47,12 +47,6 @@ class AzureManager(StorageManagerBase):
         self.blob_service_client = BlobServiceClient.from_connection_string(self.connection_string)
         self.container_client = self.blob_service_client.get_container_client(self.bucket_name)
 
-        if self.cache_path:
-            try:
-                os.makedirs(self.cache_path)
-            except OSError:
-                pass
-
     def create_bucket(self, bucket_name):
         try:
             self.blob_service_client.create_container(bucket_name)

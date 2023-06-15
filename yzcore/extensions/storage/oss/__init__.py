@@ -39,21 +39,16 @@ class OssManager(StorageManagerBase):
 
         if oss2 is None:
             raise ImportError("'oss2' must be installed to use OssManager")
+        if bucket_name:
+            self.bucket_name = bucket_name
 
         self.auth = oss2.Auth(self.access_key_id, self.access_key_secret)
-        self.bucket_name = bucket_name if bucket_name else self.bucket_name
 
         # 优先内网endpoint
         if self.internal_endpoint:
             self.bucket = oss2.Bucket(self.auth, self.internal_endpoint, self.bucket_name)
         else:
             self.bucket = oss2.Bucket(self.auth, self.endpoint, self.bucket_name)
-
-        if self.cache_path:
-            try:
-                os.makedirs(self.cache_path)
-            except OSError:
-                pass
 
     def reload_oss(self, **kwargs):
         """重新加载oss配置"""

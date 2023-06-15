@@ -59,12 +59,6 @@ class MinioManager(StorageManagerBase):
                 secure=False,
             )
 
-        if self.cache_path:
-            try:
-                os.makedirs(self.cache_path)
-            except OSError:
-                pass
-
     def _internal_minio_client_first(self):
         """优先使用内网连接minio服务"""
         if self.internal_minioClient:

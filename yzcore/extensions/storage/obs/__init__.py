@@ -33,7 +33,8 @@ class ObsManager(StorageManagerBase):
         if obs is None:
             raise ImportError("'esdk-obs-python' must be installed to use ObsManager")
 
-        self.bucket_name = bucket_name if bucket_name else self.bucket_name
+        if bucket_name:
+            self.bucket_name = bucket_name
 
         # 创建ObsClient实例
         self.obsClient = ObsClient(
@@ -41,12 +42,6 @@ class ObsManager(StorageManagerBase):
             secret_access_key=self.access_key_secret,
             server=self.endpoint,
         )
-
-        if self.cache_path:
-            try:
-                os.makedirs(self.cache_path)
-            except OSError:
-                pass
 
     @wrap_request_return_bool
     def create_bucket(self, bucket_name=None, location='cn-south-1'):

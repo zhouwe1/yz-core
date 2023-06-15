@@ -32,8 +32,14 @@ class StorageManagerBase(metaclass=ABCMeta):
         self.image_domain = conf.image_domain
         self.asset_domain = conf.asset_domain
         self.cache_path = conf.cache_path
-        self.policy_expire_time = conf.policy_expire_time  # 上传签名有效时间
-        self.private_expire_time = conf.private_expire_time  # 私有桶访问链接有效时间
+        self.policy_expire_time = conf.policy_expire_time  # 上传policy有效时间
+        self.private_expire_time = conf.private_expire_time  # 私有桶访问链接签名有效时间
+
+        if self.cache_path:
+            try:
+                os.makedirs(self.cache_path)
+            except OSError:
+                pass
 
     @abstractmethod
     def create_bucket(self, bucket_name):
