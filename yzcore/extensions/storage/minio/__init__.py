@@ -6,7 +6,6 @@
 @desc: minio对象存储封装
 """
 import json
-import os
 from urllib.parse import unquote
 
 from yzcore.extensions.storage.base import StorageManagerBase, StorageRequestError, logger, IMAGE_FORMAT_SET
@@ -177,7 +176,7 @@ class MinioManager(StorageManagerBase):
         client = self._internal_minio_client_first()
         client.fget_object(self.bucket_name, key, local_name)
 
-    def upload(self, filepath, key: str):
+    def upload(self, filepath, key: str, **kwargs):
         """
         文件上传
         :param filepath:

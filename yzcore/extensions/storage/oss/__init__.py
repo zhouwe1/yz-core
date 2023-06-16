@@ -199,7 +199,7 @@ class OssManager(StorageManagerBase):
     def download_file(self, key, local_name, process=None):
         self.bucket.get_object_to_file(key, local_name, process=process)
 
-    def upload(self, filepath, key: str, num_threads=2, multipart_threshold=None):
+    def upload(self, filepath, key: str, *, num_threads=2, multipart_threshold=None):
         """
         上传oss文件
         :param filepath: 文件路径 或 文件流

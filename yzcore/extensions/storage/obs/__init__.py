@@ -7,7 +7,6 @@
 """
 import base64
 import json
-import os
 
 from yzcore.extensions.storage.base import StorageManagerBase, StorageRequestError
 from yzcore.extensions.storage.obs.utils import wrap_request_return_bool
@@ -121,7 +120,7 @@ class ObsManager(StorageManagerBase):
             progressCallback=progress_callback
         )
 
-    def upload(self, filepath, key: str):
+    def upload(self, filepath, key: str, **kwargs):
         """
         上传文件
         :param filepath: 文件路径或者文件内容

@@ -7,7 +7,6 @@
 """
 
 from datetime import datetime, timedelta
-import os
 from io import BufferedReader, BytesIO
 from typing import Union
 from urllib.parse import unquote
