@@ -13,7 +13,7 @@ import hmac
 import datetime
 import hashlib
 from urllib import parse
-from yzcore.extensions.storage.base import StorageManagerBase, StorageRequestError
+from yzcore.extensions.storage.base import StorageManagerBase, StorageRequestError, NotFoundObject
 from yzcore.extensions.storage.oss.const import *
 from yzcore.extensions.storage.schemas import OssConfig
 
@@ -227,9 +227,9 @@ class OssManager(StorageManagerBase):
             self,
             filepath: str,
             callback_url: str,
-            callback_data: dict = None,
-            callback_content_type: str = "application/json",
-            callback_directly: bool = True,
+            callback_data: dict,
+            callback_content_type: str = "application/x-www-form-urlencoded",
+            **kwargs
     ):
         """
         授权给第三方上传
@@ -240,7 +240,6 @@ class OssManager(StorageManagerBase):
         :param callback_content_type: 回调时的Content-Type
                "application/json"
                "application/x-www-form-urlencoded"
-        :param callback_directly: True 由对象存储自动发起回调 / False 需要前端主动发起回调  oss不需要前端发起回调
         :return:
         """
         params = parse.urlencode(
@@ -263,11 +262,11 @@ class OssManager(StorageManagerBase):
 
         return dict(
             mode='oss',
+            dir=filepath,
             OSSAccessKeyId=self.access_key_id,
             host=f'{self.scheme}:{self.host}',
             policy=policy_encode.decode(),
             signature=sign,
-            dir=filepath,
             callback=base64_callback_body.decode(),
         )
 
@@ -299,7 +298,7 @@ class OssManager(StorageManagerBase):
         sign_result = base64.encodebytes(h.digest()).strip()
         return sign_result.decode()
 
-    def update_file_headers(self, key, headers):
+    def _set_object_headers(self, key: str, headers: dict):
         self.bucket.update_object_meta(key, headers)
         return True
 
@@ -309,11 +308,14 @@ class OssManager(StorageManagerBase):
 
     def get_object_meta(self, key: str):
         """获取文件基本元信息，包括该Object的ETag、Size（文件大小）、LastModified，Content-Type，并不返回其内容"""
-        # meta = self.bucket.get_object_meta(key)  # get_object_meta获取到的信息有限
-        meta = self.bucket.head_object(key)
-        return {
-            'etag': meta.etag.lower(),
-            'size': meta.content_length,
-            'last_modified': meta.headers['Last-Modified'],
-            'content_type': meta.headers['Content-Type']
-        }
+        try:
+            # meta = self.bucket.get_object_meta(key)  # get_object_meta获取到的信息有限
+            meta = self.bucket.head_object(key)
+            return {
+                'etag': meta.etag.lower(),
+                'size': meta.content_length,
+                'last_modified': meta.headers['Last-Modified'],
+                'content_type': meta.headers['Content-Type']
+            }
+        except oss2.exceptions.NotFound:
+            raise NotFoundObject()

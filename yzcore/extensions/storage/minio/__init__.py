@@ -6,12 +6,11 @@
 @desc: minio对象存储封装
 """
 import json
-from urllib.parse import unquote
+from datetime import timedelta, datetime
 
-from yzcore.extensions.storage.base import StorageManagerBase, StorageRequestError, logger, IMAGE_FORMAT_SET
+from yzcore.extensions.storage.base import StorageManagerBase, StorageRequestError, logger, NotFoundObject
 from yzcore.extensions.storage.schemas import MinioConfig
 from yzcore.utils.time_utils import datetime2str
-from datetime import timedelta, datetime
 
 
 try:
@@ -28,7 +27,7 @@ class MinioManager(StorageManagerBase):
     def __init__(self, conf: MinioConfig):
         super(MinioManager, self).__init__(conf)
         self.internal_endpoint = conf.internal_endpoint
-        # 禁用internal_endpoint, 默认为False，只有windows转换机不在k8s集群才需要禁用
+        # 禁用internal_endpoint, 默认为False，只有minio部署在k8s集群而windows转换机无法访问到时才需要禁用
         self.disable_internal_endpoint = conf.disable_internal_endpoint
         self.internal_minioClient = None
 
@@ -130,9 +129,9 @@ class MinioManager(StorageManagerBase):
     def put_sign_url(self, key):
         return self.minioClient.presigned_put_object(self.bucket_name, key)
 
-    def iter_objects(self, prefix='', marker=None, delimiter=None, max_keys=100):
+    def iter_objects(self, prefix='', **kwargs):
         client = self._internal_minio_client_first()
-        objects = client.list_objects(self.bucket_name, prefix=prefix, recursive=True)
+        objects = client.list_objects(self.bucket_name, prefix=prefix)
         _result = []
         for obj in objects:
             _result.append({
@@ -145,15 +144,20 @@ class MinioManager(StorageManagerBase):
     def get_object_meta(self, key: str):
         """获取文件基本元信息，包括该Object的ETag、Size（文件大小）、LastModified，Content-Type，并不返回其内容"""
         client = self._internal_minio_client_first()
-        meta = client.stat_object(self.bucket_name, key)
-        return {
-            'etag': meta.etag,
-            'size': meta.size,
-            'last_modified': datetime2str(meta.last_modified),
-            'content_type': meta.content_type,
-        }
+        try:
+            meta = client.stat_object(self.bucket_name, key)
+            return {
+                'etag': meta.etag,
+                'size': meta.size,
+                'last_modified': datetime2str(meta.last_modified),
+                'content_type': meta.content_type,
+            }
+        except S3Error as e:
+            if e.code == 'NoSuchKey':
+                raise NotFoundObject()
 
-    def update_file_headers(self, key, headers: dict):
+    def _set_object_headers(self, key: str, headers: dict):
+        """更新文件的metadata，主要用于更新Content-Type"""
         client = self._internal_minio_client_first()
         client.copy_object(self.bucket_name, key, CopySource(self.bucket_name, key), metadata=headers, metadata_directive='REPLACE')
         return True
@@ -198,19 +202,14 @@ class MinioManager(StorageManagerBase):
             self,
             filepath: str,
             callback_url: str,
-            callback_data: dict = None,
-            callback_content_type: str = "application/json",
-            callback_directly: bool = False,
+            callback_data: dict,
+            **kwargs
     ):
         """
-        授权给第三方上传
+        授权给第三方上传, minio无回调功能，返回callback数据给前端发起回调请求
         :param filepath:
         :param callback_url: 对象存储的回调地址
         :param callback_data: 需要回传的参数
-        :param callback_content_type: 回调时的Content-Type
-               "application/json"
-               "application/x-www-form-urlencoded"
-        :param callback_directly:  False 需要前端主动发起回调 minio没有回调功能，只能由前端发起
         :return:
         """
         form_data = self.post_sign_url(filepath)
@@ -227,24 +226,11 @@ class MinioManager(StorageManagerBase):
 
     @property
     def host(self):
-        return u'//{}/{}'.format(self.endpoint, self.bucket_name)
+        return self._host_minio
 
     def get_key_from_url(self, url, urldecode=False):
         """从URL中获取对象存储key"""
-        path = url.split(self.bucket_name + '/')[-1]
-        if urldecode:
-            path = unquote(path)
-        return path
+        return self._get_key_from_url_minio(url, urldecode)
 
     def get_file_url(self, key, with_scheme=False):
-        if not any((self.image_domain, self.asset_domain)):
-            resource_url = u"//{}/{}/{}".format(self.endpoint, self.bucket_name, key)
-        elif key.split('.')[-1].lower() in IMAGE_FORMAT_SET:
-            resource_url = u"//{domain}/{bucket}/{key}".format(
-                domain=self.image_domain, bucket=self.bucket_name, key=key)
-        else:
-            resource_url = u"//{domain}/{bucket}/{key}".format(
-                domain=self.asset_domain, bucket=self.bucket_name, key=key)
-        if with_scheme:
-            resource_url = self.scheme + ':' + resource_url
-        return resource_url
+        return self._get_file_url_minio(key, with_scheme)

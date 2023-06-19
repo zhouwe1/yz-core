@@ -9,9 +9,8 @@
 from datetime import datetime, timedelta
 from io import BufferedReader, BytesIO
 from typing import Union
-from urllib.parse import unquote
 
-from yzcore.extensions.storage.base import StorageManagerBase, StorageRequestError, IMAGE_FORMAT_SET
+from yzcore.extensions.storage.base import StorageManagerBase, StorageRequestError
 from yzcore.extensions.storage.schemas import AzureConfig
 from yzcore.utils.time_utils import datetime2str
 
@@ -95,28 +94,15 @@ class AzureManager(StorageManagerBase):
         pass
 
     def get_file_url(self, key, with_scheme=False):
-        if not any((self.image_domain, self.asset_domain)):
-            resource_url = u"//{}/{}/{}".format(self.endpoint, self.bucket_name, key)
-        elif key.split('.')[-1].lower() in IMAGE_FORMAT_SET:
-            resource_url = u"//{domain}/{bucket}/{key}".format(
-                domain=self.image_domain, bucket=self.bucket_name, key=key)
-        else:
-            resource_url = u"//{domain}/{bucket}/{key}".format(
-                domain=self.asset_domain, bucket=self.bucket_name, key=key)
-        if with_scheme:
-            resource_url = self.scheme + ':' + resource_url
-        return resource_url
+        return self._get_file_url_minio(key, with_scheme)
 
     @property
     def host(self):
-        return u'//{}/{}'.format(self.endpoint, self.bucket_name)
+        return self._host_minio
 
     def get_key_from_url(self, url, urldecode=False):
         """从URL中获取对象存储key"""
-        path = url.split(self.bucket_name + '/')[-1]
-        if urldecode:
-            path = unquote(path)
-        return path
+        return self._get_key_from_url_minio(url, urldecode)
 
     def iter_objects(self, prefix='', marker=None, delimiter=None, max_keys=100):
         objects = self.container_client.list_blobs(name_starts_with=prefix, results_per_page=max_keys)
@@ -139,7 +125,7 @@ class AzureManager(StorageManagerBase):
             'content_type': metadata['content_settings']['content_type']
         }
 
-    def update_file_headers(self, key, headers: dict):
+    def _set_object_headers(self, key: str, headers: dict):
         blob_client = self.container_client.get_blob_client(blob=key)
         blob_client.set_http_headers(ContentSettings(**headers))
         return True
@@ -160,7 +146,7 @@ class AzureManager(StorageManagerBase):
         with open(local_name, 'wb') as f:
             f.write(blob_client.download_blob().readall())
 
-    def upload(self, filepath: Union[str, BufferedReader], key: str):
+    def upload(self, filepath: Union[str, BufferedReader], key: str, **kwargs):
         try:
             blob_client = self.container_client.get_blob_client(blob=key)
             if isinstance(filepath, str):
@@ -177,18 +163,13 @@ class AzureManager(StorageManagerBase):
             filepath: str,
             callback_url: str,
             callback_data: dict = None,
-            callback_content_type: str = "application/json",
-            callback_directly: bool = True,
+            **kwargs
     ):
         """
         授权给第三方上传
         :param filepath:
         :param callback_url: 对象存储的回调地址
         :param callback_data: 需要回传的参数
-        :param callback_content_type: 回调时的Content-Type
-               "application/json"
-               "application/x-www-form-urlencoded"
-        :param callback_directly: True 由对象存储自动发起回调 / False 需要前端主动发起回调
         :return:
         """
         pass

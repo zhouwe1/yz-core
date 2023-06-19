@@ -8,7 +8,7 @@
 import base64
 import json
 
-from yzcore.extensions.storage.base import StorageManagerBase, StorageRequestError
+from yzcore.extensions.storage.base import StorageManagerBase, StorageRequestError, NotFoundObject
 from yzcore.extensions.storage.obs.utils import wrap_request_return_bool
 from yzcore.extensions.storage.schemas import ObsConfig
 
@@ -145,13 +145,12 @@ class ObsManager(StorageManagerBase):
             self,
             filepath: str,
             callback_url: str,
-            callback_data: dict = None,
+            callback_data: dict,
             callback_content_type: str = "application/json",
             callback_directly: bool = True,
     ):
         """
         授权给第三方上传
-
         :param filepath:
         :param callback_url:
         :param callback_data: 需要回传的参数
@@ -194,24 +193,23 @@ class ObsManager(StorageManagerBase):
             data['callback'] = {'url': callback_url, 'data': callback_data}
         return data
 
-    def update_file_headers(self, key, headers: dict):
+    def _set_object_headers(self, key: str, headers: dict):
         # 兼容 oss.update_file_headers
         obs_headers = SetObjectMetadataHeader()
-        obs_headers.contentType = headers.get('Content-Type')  # oss 和 obs的参数名称不相同
+        obs_headers.contentType = headers['Content-Type']  # oss 和 obs的参数名称不相同
         self.obsClient.setObjectMetadata(self.bucket_name, key, obs_headers)
         return True
 
+    @wrap_request_return_bool
     def file_exists(self, key):
         """检查文件是否存在"""
-        resp = self.obsClient.headObject(self.bucket_name, key)
-        if resp.get('status') == 200:
-            return True
-        elif resp.get('status') == 404:
-            return False
+        return self.obsClient.headObject(self.bucket_name, key)
 
     def get_object_meta(self, key: str):
         """获取文件基本元信息，包括该Object的ETag、Size（文件大小）、LastModified，Content-Type，并不返回其内容"""
         resp = self.obsClient.getObjectMetadata(self.bucket_name, key)
+        if resp.get('status') == 404:
+            raise NotFoundObject()
         return {
             'etag': resp.body.etag.strip('"').lower(),
             'size': resp.body.contentLength,

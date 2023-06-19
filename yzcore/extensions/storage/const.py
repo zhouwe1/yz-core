@@ -6,6 +6,8 @@ IMAGE_FORMAT_SET = [
     'eps', 'ai', 'raw', 'WMF', 'webp', 'tiff'
 ]
 
+DEFAULT_CONTENT_TYPE = 'application/octet-stream'
+
 CONTENT_TYPE = {
     'jpg': 'image/jpeg',
     'jpeg': 'image/jpeg',

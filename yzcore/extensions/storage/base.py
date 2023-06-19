@@ -4,8 +4,9 @@ from typing import Union
 from io import BufferedReader
 from abc import ABCMeta, abstractmethod
 from yzcore.extensions.storage.utils import create_temp_file
-from yzcore.extensions.storage.const import IMAGE_FORMAT_SET, CONTENT_TYPE
+from yzcore.extensions.storage.const import IMAGE_FORMAT_SET, CONTENT_TYPE, DEFAULT_CONTENT_TYPE
 from yzcore.extensions.storage.schemas import BaseConfig
+from yzcore.exceptions import NotFoundObject, StorageRequestError
 from yzcore.logger import get_logger
 from urllib.request import urlopen
 from urllib.error import URLError
@@ -14,9 +15,7 @@ from ssl import SSLCertVerificationError
 
 logger = get_logger(__name__)
 
-
-class StorageRequestError(Exception):
-    """请求外部对象存储服务时遇到的错误或异常"""
+__all__ = ['StorageManagerBase', 'logger', 'NotFoundObject', 'StorageRequestError']
 
 
 class StorageManagerBase(metaclass=ABCMeta):
@@ -96,9 +95,16 @@ class StorageManagerBase(metaclass=ABCMeta):
     def get_object_meta(self, key: str):
         """获取文件基本元信息，包括该Object的ETag、Size（文件大小）、LastModified，Content-Type，并不返回其内容"""
 
-    @abstractmethod
     def update_file_headers(self, key, headers: dict):
         """更改Object的元数据信息，包括Content-Type这类标准的HTTP头部"""
+        if not headers.get('Content-Type'):
+            headers['Content-Type'] = self.parse_content_type(key)
+        self._set_object_headers(key, headers)
+        return True
+
+    @abstractmethod
+    def _set_object_headers(self, key, headers):
+        """调用对象存储SDK更新object headers"""
 
     @abstractmethod
     def file_exists(self, key):
@@ -142,7 +148,7 @@ class StorageManagerBase(metaclass=ABCMeta):
         """下载文件"""
 
     @abstractmethod
-    def upload(self, filepath: Union[str, BufferedReader], key: str):
+    def upload(self, filepath: Union[str, BufferedReader], key: str, **kwargs):
         """上传本地文件或文件流"""
 
     @abstractmethod
@@ -150,13 +156,13 @@ class StorageManagerBase(metaclass=ABCMeta):
             self,
             filepath: str,
             callback_url: str,
-            callback_data: dict = None,
-            callback_content_type: str = "application/json",
+            callback_data: dict,
+            callback_content_type: str,
             callback_directly: bool = True,
     ):
         """
         授权给第三方上传
-        :param filepath:
+        :param filepath: 对象存储中的存放路径，key的前缀
         :param callback_url: 对象存储的回调地址
         :param callback_data: 需要回传的参数
         :param callback_content_type: 回调时的Content-Type
@@ -170,13 +176,32 @@ class StorageManagerBase(metaclass=ABCMeta):
     def host(self):
         return u'//{}.{}'.format(self.bucket_name, self.endpoint)
 
+    @property
+    def _host_minio(self):
+        return u'//{}/{}'.format(self.endpoint, self.bucket_name)
+
     def get_file_url(self, key, with_scheme=False):
+        """oss/obs bucket_name+endpoint的方式拼接file_url"""
         if not any((self.image_domain, self.asset_domain)):
             resource_url = u"//{}.{}/{}".format(self.bucket_name, self.endpoint, key)
         elif key.split('.')[-1].lower() in IMAGE_FORMAT_SET:
             resource_url = u"//{domain}/{key}".format(domain=self.image_domain, key=key)
         else:
             resource_url = u"//{domain}/{key}".format(domain=self.asset_domain, key=key)
+        if with_scheme:
+            resource_url = self.scheme + ':' + resource_url
+        return resource_url
+
+    def _get_file_url_minio(self, key, with_scheme=False):
+        """minio/s3/azure endpoint+bucket_name的方式拼接file_url"""
+        if not any((self.image_domain, self.asset_domain)):
+            resource_url = u"//{}/{}/{}".format(self.endpoint, self.bucket_name, key)
+        elif key.split('.')[-1].lower() in IMAGE_FORMAT_SET:
+            resource_url = u"//{domain}/{bucket}/{key}".format(
+                domain=self.image_domain, bucket=self.bucket_name, key=key)
+        else:
+            resource_url = u"//{domain}/{bucket}/{key}".format(
+                domain=self.asset_domain, bucket=self.bucket_name, key=key)
         if with_scheme:
             resource_url = self.scheme + ':' + resource_url
         return resource_url
@@ -280,7 +305,7 @@ class StorageManagerBase(metaclass=ABCMeta):
     @staticmethod
     def parse_content_type(filename):
         ext = filename.split('.')[-1].lower()
-        return CONTENT_TYPE.get(ext, 'application/octet-stream')
+        return CONTENT_TYPE.get(ext, DEFAULT_CONTENT_TYPE)
 
     def get_key_from_url(self, url, urldecode=False):
         """从URL中获取对象存储key"""
@@ -293,6 +318,13 @@ class StorageManagerBase(metaclass=ABCMeta):
         if urldecode:
             path = unquote(path)
         return path[1:]  # 去掉最前面的 /
+
+    def _get_key_from_url_minio(self, url, urldecode=False):
+        """从URL中获取对象存储key"""
+        path = url.split(self.bucket_name + '/')[-1]
+        if urldecode:
+            path = unquote(path)
+        return path
 
     @staticmethod
     def get_filename(key):

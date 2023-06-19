@@ -66,5 +66,9 @@ class UnknownError(HTTPException):
         super().__init__(status_code=500, detail=detail, headers=headers)
 
 
+class StorageRequestError(Exception):
+    """请求外部对象存储服务时遇到的错误或异常"""
+
+
 if __name__ == '__main__':
     pass
