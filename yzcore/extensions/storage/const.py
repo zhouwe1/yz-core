@@ -18,6 +18,7 @@ CONTENT_TYPE = {
     'tif': 'image/tiff',
     'tiff': 'image/tiff',
 
+    'txt': 'text/plain',
     'dds': 'application/octet-stream',
 }
 

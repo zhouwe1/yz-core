@@ -1,17 +1,19 @@
 import os
 import shutil
-from typing import Union
-from io import BufferedReader
+from typing import Union, IO
 from abc import ABCMeta, abstractmethod
+from urllib.request import urlopen
+from urllib.error import URLError
+from urllib.parse import urlparse, unquote
+from ssl import SSLCertVerificationError
+from pathlib import PurePath
+
 from yzcore.extensions.storage.utils import create_temp_file
 from yzcore.extensions.storage.const import IMAGE_FORMAT_SET, CONTENT_TYPE, DEFAULT_CONTENT_TYPE
 from yzcore.extensions.storage.schemas import BaseConfig
 from yzcore.exceptions import StorageRequestError
 from yzcore.logger import get_logger
-from urllib.request import urlopen
-from urllib.error import URLError
-from urllib.parse import urlparse, unquote
-from ssl import SSLCertVerificationError
+
 
 logger = get_logger(__name__)
 
@@ -144,9 +146,17 @@ class StorageManagerBase(metaclass=ABCMeta):
     def download_file(self, key, local_name, **kwargs):
         """下载文件"""
 
+    def upload(self, filepath: Union[str, PurePath], key: str, **kwargs):
+        """上传文件"""
+        return self.upload_file(filepath, key, **kwargs)
+
     @abstractmethod
-    def upload(self, filepath: Union[str, BufferedReader], key: str, **kwargs):
-        """上传本地文件或文件流"""
+    def upload_file(self, filepath: Union[str, PurePath], key: str, **kwargs):
+        """上传文件"""
+
+    @abstractmethod
+    def upload_obj(self, file_obj: IO, key: str, **kwargs):
+        """上传文件流"""
 
     @abstractmethod
     def get_policy(

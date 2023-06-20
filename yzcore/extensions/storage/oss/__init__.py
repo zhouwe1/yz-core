@@ -13,6 +13,8 @@ import hmac
 import datetime
 import hashlib
 from urllib import parse
+from typing import Union, IO
+from pathlib import PurePath
 from yzcore.extensions.storage.base import StorageManagerBase, StorageRequestError
 from yzcore.extensions.storage.oss.const import *
 from yzcore.extensions.storage.oss.utils import wrap_request_return_bool, wrap_request_raise_404
@@ -197,25 +199,29 @@ class OssManager(StorageManagerBase):
     def download_file(self, key, local_name, process=None):
         self.bucket.get_object_to_file(key, local_name, process=process)
 
-    def upload(self, filepath, key: str, *, num_threads=2, multipart_threshold=None):
+    def upload_file(self, filepath: Union[str, PurePath], key: str, *, num_threads=2, multipart_threshold=None):
         """
         上传oss文件
-        :param filepath: 文件路径 或 文件流
+        :param filepath: 文件路径
         :param key:
         :param num_threads:
         :param multipart_threshold:
         """
         headers = CaseInsensitiveDict({'Content-Type': self.parse_content_type(key)})
+        result = oss2.resumable_upload(
+            self.bucket, key, filepath,
+            headers=headers,
+            num_threads=num_threads,
+            multipart_threshold=multipart_threshold,
+        )
+        if result.status // 100 != 2:
+            raise StorageRequestError(f'oss upload error: {result.resp}')
+        # 返回下载链接
+        return self.get_file_url(key)
 
-        if isinstance(filepath, str):
-            result = oss2.resumable_upload(
-                self.bucket, key, filepath,
-                headers=headers,
-                num_threads=num_threads,
-                multipart_threshold=multipart_threshold,
-            )
-        else:
-            result = self.bucket.put_object(key, filepath, headers=headers)
+    def upload_obj(self, file_obj: IO, key: str, **kwargs):
+        headers = CaseInsensitiveDict({'Content-Type': self.parse_content_type(key)})
+        result = self.bucket.put_object(key, file_obj, headers=headers)
         if result.status // 100 != 2:
             raise StorageRequestError(f'oss upload error: {result.resp}')
         # 返回下载链接

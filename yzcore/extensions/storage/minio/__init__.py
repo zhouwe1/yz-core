@@ -8,6 +8,8 @@
 import json
 import traceback
 from datetime import timedelta, datetime
+from typing import Union, IO
+from pathlib import PurePath
 
 from yzcore.extensions.storage.base import StorageManagerBase, StorageRequestError, logger
 from yzcore.extensions.storage.schemas import MinioConfig
@@ -177,20 +179,22 @@ class MinioManager(StorageManagerBase):
         client = self._internal_minio_client_first()
         client.fget_object(self.bucket_name, key, local_name)
 
-    def upload(self, filepath, key: str, **kwargs):
-        """
-        文件上传
-        :param filepath:
-        :param key:
-        """
+    def upload_file(self, filepath: Union[str, PurePath], key: str, **kwargs):
         client = self._internal_minio_client_first()
         try:
             content_type = self.parse_content_type(key)
+            client.fput_object(self.bucket_name, key, filepath, content_type=content_type)
+            return self.get_file_url(key)
+        except Exception:
+            logger.error(f'minio upload error: {traceback.format_exc()}')
+            raise StorageRequestError(f'minio upload error')
 
-            if isinstance(filepath, str):
-                client.fput_object(self.bucket_name, key, filepath, content_type=content_type)
-            else:
-                client.put_object(self.bucket_name, key, filepath, length=-1, content_type=content_type, part_size=1024*1024*5)
+    def upload_obj(self, file_obj: IO, key: str, **kwargs):
+        client = self._internal_minio_client_first()
+        try:
+            content_type = self.parse_content_type(key)
+            client.put_object(self.bucket_name, key, file_obj, length=-1, content_type=content_type,
+                              part_size=1024 * 1024 * 5)
             return self.get_file_url(key)
         except Exception:
             logger.error(f'minio upload error: {traceback.format_exc()}')

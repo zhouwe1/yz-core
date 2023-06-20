@@ -7,6 +7,8 @@
 """
 import base64
 import json
+from typing import Union, IO
+from pathlib import PurePath
 
 from yzcore.extensions.storage.base import StorageManagerBase, StorageRequestError
 from yzcore.extensions.storage.obs.utils import wrap_request_return_bool
@@ -123,25 +125,22 @@ class ObsManager(StorageManagerBase):
         if resp.status == 404:
             raise NotFoundObject()
 
-    def upload(self, filepath, key: str, **kwargs):
-        """
-        上传文件
-        :param filepath: 文件路径或者文件内容
-        :param key:
-        """
+    def upload_file(self, filepath: Union[str, PurePath], key: str, **kwargs):
         headers = obs.PutObjectHeader(contentType=self.parse_content_type(key))
-
-        if isinstance(filepath, str):
-            resp = self.obsClient.putFile(
-                self.bucket_name, key, filepath, headers=headers)
-        else:
-            resp = self.obsClient.putContent(
-                self.bucket_name, key, content=filepath)
-
+        resp = self.obsClient.putFile(
+            self.bucket_name, key, filepath, headers=headers)
         if resp.status >= 300:
             msg = resp.errorMessage
             raise StorageRequestError(f'obs upload error: {msg}')
+        return self.get_file_url(key)
 
+    def upload_obj(self, file_obj: IO, key: str, **kwargs):
+        headers = obs.PutObjectHeader(contentType=self.parse_content_type(key))
+        resp = self.obsClient.putContent(
+            self.bucket_name, key, content=file_obj, headers=headers)
+        if resp.status >= 300:
+            msg = resp.errorMessage
+            raise StorageRequestError(f'obs upload error: {msg}')
         return self.get_file_url(key)
 
     def get_policy(

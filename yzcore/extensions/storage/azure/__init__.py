@@ -8,7 +8,8 @@
 import traceback
 from datetime import datetime, timedelta
 from io import BufferedReader, BytesIO
-from typing import Union
+from typing import Union, IO
+from pathlib import PurePath
 
 from yzcore.extensions.storage.base import StorageManagerBase, StorageRequestError, logger
 from yzcore.extensions.storage.schemas import AzureConfig
@@ -151,14 +152,14 @@ class AzureManager(StorageManagerBase):
         with open(local_name, 'wb') as f:
             f.write(blob_client.download_blob().readall())
 
-    def upload(self, filepath: Union[str, BufferedReader], key: str, **kwargs):
+    def upload_file(self, filepath: Union[str, PurePath], key: str, **kwargs):
+        with open(filepath, 'rb') as f:
+            return self.upload_obj(f, key)
+
+    def upload_obj(self, file_obj: IO, key: str, **kwargs):
         try:
             blob_client = self.container_client.get_blob_client(blob=key)
-            if isinstance(filepath, str):
-                with open(filepath, 'rb') as f:
-                    blob_client.upload_blob(f)
-            else:
-                blob_client.upload_blob(filepath)
+            blob_client.upload_blob(file_obj)
             return self.get_file_url(key)
         except Exception:
             logger.error(f'azure blob upload error: {traceback.format_exc()}')
