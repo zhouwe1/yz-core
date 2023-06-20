@@ -12,6 +12,7 @@ from typing import Union
 
 from yzcore.extensions.storage.base import StorageManagerBase, StorageRequestError, logger
 from yzcore.extensions.storage.schemas import AzureConfig
+from yzcore.extensions.storage.azure.utils import wrap_request_raise_404
 from yzcore.utils.time_utils import datetime2str
 
 
@@ -115,6 +116,7 @@ class AzureManager(StorageManagerBase):
             })
         return _result
 
+    @wrap_request_raise_404
     def get_object_meta(self, key: str):
         blob_client = self.container_client.get_blob_client(blob=key)
         metadata = blob_client.get_blob_properties()
@@ -125,6 +127,7 @@ class AzureManager(StorageManagerBase):
             'content_type': metadata['content_settings']['content_type']
         }
 
+    @wrap_request_raise_404
     def _set_object_headers(self, key: str, headers: dict):
         blob_client = self.container_client.get_blob_client(blob=key)
         blob_client.set_http_headers(ContentSettings(**headers))
@@ -134,6 +137,7 @@ class AzureManager(StorageManagerBase):
         blob_client = self.container_client.get_blob_client(blob=key)
         return blob_client.exists()
 
+    @wrap_request_raise_404
     def download_stream(self, key, **kwargs):
         blob_client = self.container_client.get_blob_client(blob=key)
         stream = BytesIO()
@@ -141,6 +145,7 @@ class AzureManager(StorageManagerBase):
         stream.seek(0)
         return stream
 
+    @wrap_request_raise_404
     def download_file(self, key, local_name, **kwargs):
         blob_client = self.container_client.get_blob_client(blob=key)
         with open(local_name, 'wb') as f:

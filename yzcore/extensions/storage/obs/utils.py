@@ -3,8 +3,7 @@ from yzcore.extensions.storage.base import StorageRequestError
 
 
 def wrap_request_return_bool(func):
-    """"""
-
+    """查询对象是否存在"""
     @functools.wraps(func)
     def wrap_func(*args, **kwargs):
         try:
@@ -19,5 +18,4 @@ def wrap_request_return_bool(func):
         except:
             import traceback
             print(traceback.format_exc())
-
     return wrap_func

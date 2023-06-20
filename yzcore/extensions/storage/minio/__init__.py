@@ -9,7 +9,7 @@ import json
 import traceback
 from datetime import timedelta, datetime
 
-from yzcore.extensions.storage.base import StorageManagerBase, StorageRequestError, logger, NotFoundObject
+from yzcore.extensions.storage.base import StorageManagerBase, StorageRequestError, logger
 from yzcore.extensions.storage.schemas import MinioConfig
 from yzcore.extensions.storage.minio.utils import wrap_request_return_bool, wrap_request_raise_404
 from yzcore.utils.time_utils import datetime2str

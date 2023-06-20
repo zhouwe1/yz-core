@@ -13,8 +13,9 @@ import hmac
 import datetime
 import hashlib
 from urllib import parse
-from yzcore.extensions.storage.base import StorageManagerBase, StorageRequestError, NotFoundObject
+from yzcore.extensions.storage.base import StorageManagerBase, StorageRequestError
 from yzcore.extensions.storage.oss.const import *
+from yzcore.extensions.storage.oss.utils import wrap_request_return_bool, wrap_request_raise_404
 from yzcore.extensions.storage.schemas import OssConfig
 
 try:
@@ -105,17 +106,12 @@ class OssManager(StorageManagerBase):
         return self.service.list_buckets(
             prefix=prefix, marker=marker, max_keys=max_keys, params=params)
 
-    def is_exist_bucket(self, bucket_name=None):
+    @wrap_request_return_bool
+    def is_exist_bucket(self, **kwargs):
         """判断存储空间是否存在"""
-        try:
-            self.bucket.get_bucket_info()
-        except oss2.exceptions.NoSuchBucket:
-            return False
-        except:
-            raise
-        return True
+        return self.bucket.get_bucket_info()
 
-    def delete_bucket(self, bucket_name=None):
+    def delete_bucket(self, **kwargs):
         """删除bucket"""
         try:
             resp = self.bucket.delete_bucket()
@@ -193,9 +189,11 @@ class OssManager(StorageManagerBase):
             })
         return _result
 
+    @wrap_request_raise_404
     def download_stream(self, key, process=None):
         return self.bucket.get_object(key, process=process)
 
+    @wrap_request_raise_404
     def download_file(self, key, local_name, process=None):
         self.bucket.get_object_to_file(key, local_name, process=process)
 
@@ -218,7 +216,7 @@ class OssManager(StorageManagerBase):
             )
         else:
             result = self.bucket.put_object(key, filepath, headers=headers)
-        if result.status != 200:
+        if result.status // 100 != 2:
             raise StorageRequestError(f'oss upload error: {result.resp}')
         # 返回下载链接
         return self.get_file_url(key)
@@ -298,6 +296,7 @@ class OssManager(StorageManagerBase):
         sign_result = base64.encodebytes(h.digest()).strip()
         return sign_result.decode()
 
+    @wrap_request_raise_404
     def _set_object_headers(self, key: str, headers: dict):
         self.bucket.update_object_meta(key, headers)
         return True
@@ -306,16 +305,14 @@ class OssManager(StorageManagerBase):
         """检查文件是否存在"""
         return self.bucket.object_exists(key)
 
+    @wrap_request_raise_404
     def get_object_meta(self, key: str):
         """获取文件基本元信息，包括该Object的ETag、Size（文件大小）、LastModified，Content-Type，并不返回其内容"""
-        try:
-            # meta = self.bucket.get_object_meta(key)  # get_object_meta获取到的信息有限
-            meta = self.bucket.head_object(key)
-            return {
-                'etag': meta.etag.lower(),
-                'size': meta.content_length,
-                'last_modified': meta.headers['Last-Modified'],
-                'content_type': meta.headers['Content-Type']
-            }
-        except oss2.exceptions.NotFound:
-            raise NotFoundObject()
+        # meta = self.bucket.get_object_meta(key)  # get_object_meta获取到的信息有限
+        meta = self.bucket.head_object(key)
+        return {
+            'etag': meta.etag.lower(),
+            'size': meta.content_length,
+            'last_modified': meta.headers['Last-Modified'],
+            'content_type': meta.headers['Content-Type']
+        }

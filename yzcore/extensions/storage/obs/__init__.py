@@ -8,9 +8,10 @@
 import base64
 import json
 
-from yzcore.extensions.storage.base import StorageManagerBase, StorageRequestError, NotFoundObject
+from yzcore.extensions.storage.base import StorageManagerBase, StorageRequestError
 from yzcore.extensions.storage.obs.utils import wrap_request_return_bool
 from yzcore.extensions.storage.schemas import ObsConfig
+from yzcore.exceptions import NotFoundObject
 
 try:
     import obs
@@ -109,14 +110,18 @@ class ObsManager(StorageManagerBase):
 
     def download_stream(self, key, **kwargs):
         resp = self.obsClient.getObject(self.bucket_name, key, loadStreamInMemory=False)
+        if resp.status == 404:
+            raise NotFoundObject()
         return resp.body.response
 
     def download_file(self, key, local_name, progress_callback=None):
-        self.obsClient.getObject(
+        resp = self.obsClient.getObject(
             self.bucket_name, key,
             downloadPath=local_name,
             progressCallback=progress_callback
         )
+        if resp.status == 404:
+            raise NotFoundObject()
 
     def upload(self, filepath, key: str, **kwargs):
         """
@@ -195,7 +200,9 @@ class ObsManager(StorageManagerBase):
         # 兼容 oss.update_file_headers
         obs_headers = SetObjectMetadataHeader()
         obs_headers.contentType = headers['Content-Type']  # oss 和 obs的参数名称不相同
-        self.obsClient.setObjectMetadata(self.bucket_name, key, obs_headers)
+        resp = self.obsClient.setObjectMetadata(self.bucket_name, key, obs_headers)
+        if resp.status == 404:
+            raise NotFoundObject()
         return True
 
     @wrap_request_return_bool
@@ -206,7 +213,7 @@ class ObsManager(StorageManagerBase):
     def get_object_meta(self, key: str):
         """获取文件基本元信息，包括该Object的ETag、Size（文件大小）、LastModified，Content-Type，并不返回其内容"""
         resp = self.obsClient.getObjectMetadata(self.bucket_name, key)
-        if resp.get('status') == 404:
+        if resp.status == 404:
             raise NotFoundObject()
         return {
             'etag': resp.body.etag.strip('"').lower(),

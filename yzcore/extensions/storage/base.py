@@ -6,7 +6,7 @@ from abc import ABCMeta, abstractmethod
 from yzcore.extensions.storage.utils import create_temp_file
 from yzcore.extensions.storage.const import IMAGE_FORMAT_SET, CONTENT_TYPE, DEFAULT_CONTENT_TYPE
 from yzcore.extensions.storage.schemas import BaseConfig
-from yzcore.exceptions import NotFoundObject, StorageRequestError
+from yzcore.exceptions import StorageRequestError
 from yzcore.logger import get_logger
 from urllib.request import urlopen
 from urllib.error import URLError
@@ -15,7 +15,7 @@ from ssl import SSLCertVerificationError
 
 logger = get_logger(__name__)
 
-__all__ = ['StorageManagerBase', 'logger', 'NotFoundObject', 'StorageRequestError']
+__all__ = ['StorageManagerBase', 'logger', 'StorageRequestError']
 
 
 class StorageManagerBase(metaclass=ABCMeta):

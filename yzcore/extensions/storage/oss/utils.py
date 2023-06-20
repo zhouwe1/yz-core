@@ -1,9 +1,9 @@
 import functools
 from yzcore.exceptions import NotFoundObject
 try:
-    from minio.error import S3Error
+    from oss2.exceptions import NotFound
 except ImportError:
-    S3Error = None
+    NotFound = None
 
 
 def wrap_request_return_bool(func):
@@ -13,10 +13,9 @@ def wrap_request_return_bool(func):
         try:
             func(*args, **kwargs)
             return True
-        except S3Error as exc:
-            if exc.code != "NoSuchKey":
-                raise
-        return False
+        except NotFound:
+            return False
+
     return wrap_func
 
 
@@ -26,8 +25,6 @@ def wrap_request_raise_404(func):
     def wrap_func(*args, **kwargs):
         try:
             return func(*args, **kwargs)
-        except S3Error as e:
-            if e.code == 'NoSuchKey':
-                raise NotFoundObject()
-            raise
+        except NotFound:
+            raise NotFoundObject()
     return wrap_func
