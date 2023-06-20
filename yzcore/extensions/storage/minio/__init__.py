@@ -6,10 +6,12 @@
 @desc: minio对象存储封装
 """
 import json
+import traceback
 from datetime import timedelta, datetime
 
 from yzcore.extensions.storage.base import StorageManagerBase, StorageRequestError, logger, NotFoundObject
 from yzcore.extensions.storage.schemas import MinioConfig
+from yzcore.extensions.storage.minio.utils import wrap_request_return_bool, wrap_request_raise_404
 from yzcore.utils.time_utils import datetime2str
 
 
@@ -141,41 +143,36 @@ class MinioManager(StorageManagerBase):
             })
         return _result
 
+    @wrap_request_raise_404
     def get_object_meta(self, key: str):
         """获取文件基本元信息，包括该Object的ETag、Size（文件大小）、LastModified，Content-Type，并不返回其内容"""
         client = self._internal_minio_client_first()
-        try:
-            meta = client.stat_object(self.bucket_name, key)
-            return {
-                'etag': meta.etag,
-                'size': meta.size,
-                'last_modified': datetime2str(meta.last_modified),
-                'content_type': meta.content_type,
-            }
-        except S3Error as e:
-            if e.code == 'NoSuchKey':
-                raise NotFoundObject()
+        meta = client.stat_object(self.bucket_name, key)
+        return {
+            'etag': meta.etag,
+            'size': meta.size,
+            'last_modified': datetime2str(meta.last_modified),
+            'content_type': meta.content_type,
+        }
 
+    @wrap_request_raise_404
     def _set_object_headers(self, key: str, headers: dict):
         """更新文件的metadata，主要用于更新Content-Type"""
         client = self._internal_minio_client_first()
         client.copy_object(self.bucket_name, key, CopySource(self.bucket_name, key), metadata=headers, metadata_directive='REPLACE')
         return True
 
+    @wrap_request_return_bool
     def file_exists(self, key):
         client = self._internal_minio_client_first()
-        try:
-            client.stat_object(self.bucket_name, key)
-            return True
-        except S3Error as e:
-            if e.code == 'NoSuchKey':
-                return False
-            raise e
+        return client.stat_object(self.bucket_name, key)
 
+    @wrap_request_raise_404
     def download_stream(self, key, **kwargs):
         client = self._internal_minio_client_first()
         return client.get_object(self.bucket_name, key)
 
+    @wrap_request_raise_404
     def download_file(self, key, local_name, **kwargs):
         client = self._internal_minio_client_first()
         client.fget_object(self.bucket_name, key, local_name)
@@ -195,8 +192,9 @@ class MinioManager(StorageManagerBase):
             else:
                 client.put_object(self.bucket_name, key, filepath, length=-1, content_type=content_type, part_size=1024*1024*5)
             return self.get_file_url(key)
-        except Exception as e:
-            raise StorageRequestError(f'minio upload error: {e}')
+        except Exception:
+            logger.error(f'minio upload error: {traceback.format_exc()}')
+            raise StorageRequestError(f'minio upload error')
 
     def get_policy(
             self,

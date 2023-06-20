@@ -5,12 +5,12 @@
 @date: 2023/04/17
 @desc: azure blob对象存储封装
 """
-
+import traceback
 from datetime import datetime, timedelta
 from io import BufferedReader, BytesIO
 from typing import Union
 
-from yzcore.extensions.storage.base import StorageManagerBase, StorageRequestError
+from yzcore.extensions.storage.base import StorageManagerBase, StorageRequestError, logger
 from yzcore.extensions.storage.schemas import AzureConfig
 from yzcore.utils.time_utils import datetime2str
 
@@ -155,8 +155,9 @@ class AzureManager(StorageManagerBase):
             else:
                 blob_client.upload_blob(filepath)
             return self.get_file_url(key)
-        except Exception as e:
-            raise StorageRequestError(f'azure blob upload error: {e}')
+        except Exception:
+            logger.error(f'azure blob upload error: {traceback.format_exc()}')
+            raise StorageRequestError(f'azure blob upload error')
 
     def get_policy(
             self,

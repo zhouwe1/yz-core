@@ -66,8 +66,10 @@ class UnknownError(HTTPException):
         super().__init__(status_code=500, detail=detail, headers=headers)
 
 
-class StorageRequestError(Exception):
-    """请求外部对象存储服务时遇到的错误或异常"""
+class StorageRequestError(HTTPException):
+    """用于对象存储调用过程中的错误"""
+    def __init__(self, detail: Any = 'ObjectStorage Service Error', headers: dict = None):
+        super().__init__(status_code=400, detail=detail, headers=headers)
 
 
 if __name__ == '__main__':

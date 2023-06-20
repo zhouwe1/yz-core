@@ -28,7 +28,7 @@ class ObsManager(StorageManagerBase):
         self.__init()
 
     def __init(self, bucket_name=None):
-        """"""
+        """初始化对象"""
         if obs is None:
             raise ImportError("'esdk-obs-python' must be installed to use ObsManager")
 
@@ -42,7 +42,6 @@ class ObsManager(StorageManagerBase):
             server=self.endpoint,
         )
 
-    @wrap_request_return_bool
     def create_bucket(self, bucket_name=None, location='cn-south-1'):
         """创建bucket，并且作为当前操作bucket"""
         resp = self.obsClient.createBucket(bucket_name, location=location)
@@ -67,7 +66,6 @@ class ObsManager(StorageManagerBase):
             bucket_name = self.bucket_name
         return self.obsClient.headBucket(bucket_name)
 
-    @wrap_request_return_bool
     def delete_bucket(self, bucket_name=None):
         if bucket_name is None:
             bucket_name = self.bucket_name
@@ -135,7 +133,7 @@ class ObsManager(StorageManagerBase):
             resp = self.obsClient.putContent(
                 self.bucket_name, key, content=filepath)
 
-        if resp.status > 200:
+        if resp.status >= 300:
             msg = resp.errorMessage
             raise StorageRequestError(f'obs upload error: {msg}')
 

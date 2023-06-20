@@ -35,10 +35,7 @@ class StorageManagerBase(metaclass=ABCMeta):
         self.private_expire_time = conf.private_expire_time  # 私有桶访问链接签名有效时间
 
         if self.cache_path:
-            try:
-                os.makedirs(self.cache_path)
-            except OSError:
-                pass
+            self.make_dir(self.cache_path)
 
     @abstractmethod
     def create_bucket(self, bucket_name):
