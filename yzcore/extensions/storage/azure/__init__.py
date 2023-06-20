@@ -7,8 +7,8 @@
 """
 import traceback
 from datetime import datetime, timedelta
-from io import BufferedReader, BytesIO
-from typing import Union, IO
+from io import BytesIO
+from typing import Union, IO, AnyStr
 from pathlib import PurePath
 
 from yzcore.extensions.storage.base import StorageManagerBase, StorageRequestError, logger
@@ -156,7 +156,7 @@ class AzureManager(StorageManagerBase):
         with open(filepath, 'rb') as f:
             return self.upload_obj(f, key)
 
-    def upload_obj(self, file_obj: IO, key: str, **kwargs):
+    def upload_obj(self, file_obj: Union[IO, AnyStr], key: str, **kwargs):
         try:
             blob_client = self.container_client.get_blob_client(blob=key)
             blob_client.upload_blob(file_obj)

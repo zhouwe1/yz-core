@@ -13,7 +13,7 @@ import hmac
 import datetime
 import hashlib
 from urllib import parse
-from typing import Union, IO
+from typing import Union, IO, AnyStr
 from pathlib import PurePath
 from yzcore.extensions.storage.base import StorageManagerBase, StorageRequestError
 from yzcore.extensions.storage.oss.const import *
@@ -219,7 +219,7 @@ class OssManager(StorageManagerBase):
         # 返回下载链接
         return self.get_file_url(key)
 
-    def upload_obj(self, file_obj: IO, key: str, **kwargs):
+    def upload_obj(self, file_obj: Union[IO, AnyStr], key: str, **kwargs):
         headers = CaseInsensitiveDict({'Content-Type': self.parse_content_type(key)})
         result = self.bucket.put_object(key, file_obj, headers=headers)
         if result.status // 100 != 2:

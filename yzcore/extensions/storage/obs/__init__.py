@@ -7,7 +7,7 @@
 """
 import base64
 import json
-from typing import Union, IO
+from typing import Union, IO, AnyStr
 from pathlib import PurePath
 
 from yzcore.extensions.storage.base import StorageManagerBase, StorageRequestError
@@ -134,7 +134,7 @@ class ObsManager(StorageManagerBase):
             raise StorageRequestError(f'obs upload error: {msg}')
         return self.get_file_url(key)
 
-    def upload_obj(self, file_obj: IO, key: str, **kwargs):
+    def upload_obj(self, file_obj: Union[IO, AnyStr], key: str, **kwargs):
         headers = obs.PutObjectHeader(contentType=self.parse_content_type(key))
         resp = self.obsClient.putContent(
             self.bucket_name, key, content=file_obj, headers=headers)

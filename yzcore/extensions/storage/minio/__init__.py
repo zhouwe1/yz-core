@@ -8,7 +8,8 @@
 import json
 import traceback
 from datetime import timedelta, datetime
-from typing import Union, IO
+from io import BytesIO
+from typing import Union, IO, AnyStr
 from pathlib import PurePath
 
 from yzcore.extensions.storage.base import StorageManagerBase, StorageRequestError, logger
@@ -189,9 +190,13 @@ class MinioManager(StorageManagerBase):
             logger.error(f'minio upload error: {traceback.format_exc()}')
             raise StorageRequestError(f'minio upload error')
 
-    def upload_obj(self, file_obj: IO, key: str, **kwargs):
+    def upload_obj(self, file_obj: Union[IO, AnyStr], key: str, **kwargs):
         client = self._internal_minio_client_first()
         try:
+            if isinstance(file_obj, bytes):
+                file_obj = BytesIO(file_obj)
+            elif isinstance(file_obj, str):
+                file_obj = BytesIO(file_obj.encode())
             content_type = self.parse_content_type(key)
             client.put_object(self.bucket_name, key, file_obj, length=-1, content_type=content_type,
                               part_size=1024 * 1024 * 5)
