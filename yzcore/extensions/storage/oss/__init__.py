@@ -271,7 +271,7 @@ class OssManager(StorageManagerBase):
         base64_callback_body = base64.b64encode(callback_param)
 
         return dict(
-            mode='oss',
+            mode=self.mode,
             dir=filepath,
             OSSAccessKeyId=self.access_key_id,
             host=f'{self.scheme}:{self.host}',
@@ -298,7 +298,6 @@ class OssManager(StorageManagerBase):
     def get_signature(self, policy_encode):
         """
         获取签名
-
         :param policy_encode:
         :return:
         """

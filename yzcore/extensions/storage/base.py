@@ -68,7 +68,7 @@ class StorageManagerBase(metaclass=ABCMeta):
 
     @abstractmethod
     def get_sign_url(self, key, expire=0):
-        """生成下载对象的带授权信息的URL"""
+        """生成获取文件的带签名的URL"""
 
     @abstractmethod
     def post_sign_url(self, key):

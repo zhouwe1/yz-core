@@ -233,7 +233,7 @@ class MinioManager(StorageManagerBase):
         """
         form_data = self.post_sign_url(filepath)
         data = {
-            'mode': 'minio',
+            'mode': self.mode,
             'host': f'{self.scheme}:{self.host}',
             'dir': filepath,
             'success_action_status': 200,

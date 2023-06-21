@@ -48,5 +48,5 @@ class AzureConfig(BaseConfig):
     access_key_secret: Optional[str] = None
 
 
-class AmazonS3Config(BaseConfig):
+class S3Config(BaseConfig):
     pass

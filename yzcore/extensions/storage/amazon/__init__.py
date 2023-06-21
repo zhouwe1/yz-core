@@ -11,7 +11,7 @@ from io import BytesIO
 from os import PathLike
 
 from yzcore.extensions.storage.base import StorageManagerBase, StorageRequestError, logger
-from yzcore.extensions.storage.schemas import AmazonS3Config
+from yzcore.extensions.storage.schemas import S3Config
 from yzcore.extensions.storage.amazon.utils import wrap_request_return_bool, wrap_request_raise_404
 from yzcore.utils import datetime2str
 
@@ -23,10 +23,10 @@ except ImportError:
     boto3 = None
 
 
-class AmazonS3Manager(StorageManagerBase):
+class S3Manager(StorageManagerBase):
 
-    def __init__(self, conf: AmazonS3Config):
-        super(AmazonS3Manager, self).__init__(conf)
+    def __init__(self, conf: S3Config):
+        super(S3Manager, self).__init__(conf)
         self.endpoint_url = f'{self.scheme}://{self.endpoint}'
 
         self.__init()
@@ -65,13 +65,32 @@ class AmazonS3Manager(StorageManagerBase):
         pass
 
     def get_sign_url(self, key, expire=0):
-        pass
+        return self.client.generate_presigned_url(
+            ClientMethod='get_object',
+            Params={'Bucket': self.bucket_name, 'Key': key},
+            ExpiresIn=expire or self.private_expire_time,
+            HttpMethod='GET',
+        )
 
     def post_sign_url(self, key):
-        pass
+        """"
+        获取post上传文件时需要的参数
+        :param key: 这里的key作为将来key的前缀
+        :return: {'key': key, 'AWSAccessKeyId': '', 'policy': '', 'signature': ''}
+        """
+        return self.client.generate_presigned_post(
+            Bucket=self.bucket_name,
+            Key=key+'${filename}',
+            ExpiresIn=self.policy_expire_time,
+        )
 
     def put_sign_url(self, key):
-        pass
+        return self.client.generate_presigned_url(
+            ClientMethod='put_object',
+            Params={'Bucket': self.bucket_name, 'Key': key},
+            ExpiresIn=self.policy_expire_time,
+            HttpMethod='PUT',
+        )
 
     def iter_objects(self, prefix='', delimiter='', max_keys=100, **kwargs):
         result = []
@@ -154,7 +173,17 @@ class AmazonS3Manager(StorageManagerBase):
             callback_data: dict,
             **kwargs
     ):
-        pass
+        form_data = self.post_sign_url(filepath)
+        print('form_data', form_data)
+        data = {
+            'mode': self.mode,
+            'host': form_data['url'],
+            'dir': filepath,
+            'callback': {'url': callback_url, 'data': callback_data},
+            **form_data['fields'],
+        }
+        data.pop('key')
+        return data
 
     @property
     def host(self):

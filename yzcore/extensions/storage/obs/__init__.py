@@ -191,7 +191,7 @@ class ObsManager(StorageManagerBase):
         res = self.post_sign_url(key=filepath, form_param=form_param)
 
         data = dict(
-            mode='obs',
+            mode=self.mode,
             AccessKeyId=self.access_key_id,
             host=f'{self.scheme}:{self.host}',
             policy=res.policy,
