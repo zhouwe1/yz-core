@@ -1,10 +1,11 @@
 from yzcore.extensions.storage.oss import OssManager
 from yzcore.extensions.storage.obs import ObsManager
 from yzcore.extensions.storage.minio import MinioManager
+from yzcore.extensions.storage.amazon import AmazonS3Manager
 from yzcore.extensions.storage.azure import AzureManager
 from yzcore.extensions.storage.base import StorageRequestError
 from yzcore.extensions.storage.const import IMAGE_FORMAT_SET, StorageMode
-from yzcore.extensions.storage.schemas import OssConfig, ObsConfig, MinioConfig, AzureConfig
+from yzcore.extensions.storage.schemas import OssConfig, ObsConfig, MinioConfig, AmazonS3Config, AzureConfig
 
 
 __all__ = [
@@ -34,7 +35,7 @@ class StorageManage(object):
             mode = StorageMode.__getitem__(storage_conf['mode'].lower()).value
             storage_conf['mode'] = mode
         except KeyError:
-            raise KeyError(f'storage mode must be one of ["oss"|"obs"|"minio"|"azure"], current is "{storage_conf["mode"]}"')
+            raise KeyError(f'storage mode must be one of [oss|obs|minio|amazon|azure], current is "{storage_conf["mode"]}"')
 
         if mode == 'obs':
             storage_manage = ObsManager(ObsConfig(**storage_conf))
@@ -42,6 +43,8 @@ class StorageManage(object):
             storage_manage = OssManager(OssConfig(**storage_conf))
         elif mode == 'minio':
             storage_manage = MinioManager(MinioConfig(**storage_conf))
+        elif mode == 'amazon':
+            storage_manage = AmazonS3Manager(AmazonS3Config(**storage_conf))
         elif mode == 'azure':
             storage_manage = AzureManager(AzureConfig(**storage_conf))
         else:

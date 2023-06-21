@@ -46,3 +46,7 @@ class AzureConfig(BaseConfig):
     account_name: str
     access_key_id: Optional[str] = None
     access_key_secret: Optional[str] = None
+
+
+class AmazonS3Config(BaseConfig):
+    pass
