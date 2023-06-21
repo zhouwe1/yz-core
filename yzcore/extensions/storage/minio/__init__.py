@@ -9,8 +9,8 @@ import json
 import traceback
 from datetime import timedelta, datetime
 from io import BytesIO
+from os import PathLike
 from typing import Union, IO, AnyStr
-from pathlib import PurePath
 
 from yzcore.extensions.storage.base import StorageManagerBase, StorageRequestError, logger
 from yzcore.extensions.storage.schemas import MinioConfig
@@ -22,6 +22,7 @@ try:
     from minio import Minio
     from minio.datatypes import PostPolicy
     from minio.commonconfig import CopySource
+    from minio.deleteobjects import DeleteObject
     from minio.error import S3Error
 except:
     Minio = None
@@ -180,7 +181,8 @@ class MinioManager(StorageManagerBase):
         client = self._internal_minio_client_first()
         client.fget_object(self.bucket_name, key, local_name)
 
-    def upload_file(self, filepath: Union[str, PurePath], key: str, **kwargs):
+    def upload_file(self, filepath: Union[str, PathLike], key: str, **kwargs):
+        """上传文件"""
         client = self._internal_minio_client_first()
         try:
             content_type = self.parse_content_type(key)
@@ -188,9 +190,10 @@ class MinioManager(StorageManagerBase):
             return self.get_file_url(key)
         except Exception:
             logger.error(f'minio upload error: {traceback.format_exc()}')
-            raise StorageRequestError(f'minio upload error')
+            raise StorageRequestError('minio upload error')
 
     def upload_obj(self, file_obj: Union[IO, AnyStr], key: str, **kwargs):
+        """上传文件流"""
         client = self._internal_minio_client_first()
         try:
             if isinstance(file_obj, bytes):
@@ -203,7 +206,16 @@ class MinioManager(StorageManagerBase):
             return self.get_file_url(key)
         except Exception:
             logger.error(f'minio upload error: {traceback.format_exc()}')
-            raise StorageRequestError(f'minio upload error')
+            raise StorageRequestError('minio upload error')
+
+    def delete_object(self, key: str):
+        """删除文件"""
+        client = self._internal_minio_client_first()
+        errors = client.remove_objects(self.bucket_name, [DeleteObject(key)])
+        for error in errors:
+            logger.error(f'minio delete file error: {error}')
+            raise StorageRequestError('minio delete file error')
+        return True
 
     def get_policy(
             self,

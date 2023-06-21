@@ -14,7 +14,7 @@ import datetime
 import hashlib
 from urllib import parse
 from typing import Union, IO, AnyStr
-from pathlib import PurePath
+from os import PathLike
 from yzcore.extensions.storage.base import StorageManagerBase, StorageRequestError
 from yzcore.extensions.storage.oss.const import *
 from yzcore.extensions.storage.oss.utils import wrap_request_return_bool, wrap_request_raise_404
@@ -199,9 +199,9 @@ class OssManager(StorageManagerBase):
     def download_file(self, key, local_name, process=None):
         self.bucket.get_object_to_file(key, local_name, process=process)
 
-    def upload_file(self, filepath: Union[str, PurePath], key: str, *, num_threads=2, multipart_threshold=None):
+    def upload_file(self, filepath: Union[str, PathLike], key: str, *, num_threads=2, multipart_threshold=None):
         """
-        上传oss文件
+        上传文件流
         :param filepath: 文件路径
         :param key:
         :param num_threads:
@@ -220,12 +220,18 @@ class OssManager(StorageManagerBase):
         return self.get_file_url(key)
 
     def upload_obj(self, file_obj: Union[IO, AnyStr], key: str, **kwargs):
+        """上传文件流"""
         headers = CaseInsensitiveDict({'Content-Type': self.parse_content_type(key)})
         result = self.bucket.put_object(key, file_obj, headers=headers)
         if result.status // 100 != 2:
             raise StorageRequestError(f'oss upload error: {result.resp}')
         # 返回下载链接
         return self.get_file_url(key)
+
+    def delete_object(self, key: str):
+        """删除文件"""
+        self.bucket.delete_object(key)
+        return True
 
     def get_policy(
             self,

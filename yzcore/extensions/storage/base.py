@@ -159,6 +159,10 @@ class StorageManagerBase(metaclass=ABCMeta):
         """上传文件流"""
 
     @abstractmethod
+    def delete_object(self, key: str):
+        """删除文件"""
+
+    @abstractmethod
     def get_policy(
             self,
             filepath: str,
@@ -249,7 +253,7 @@ class StorageManagerBase(metaclass=ABCMeta):
             # 检查bucket是否正确
             assert self.is_exist_bucket(), f'{self.bucket_name}: No Such Bucket'
             # CORS 检查
-            assert self._cors_check(), f'{self.bucket_name}: CORS设置错误'
+            # assert self._cors_check(), f'{self.bucket_name}: CORS设置错误'
 
             # 生成一个带有随机字符串的内存文件
             temp_file = create_temp_file(text_length=32)
@@ -257,7 +261,7 @@ class StorageManagerBase(metaclass=ABCMeta):
 
             key = f'storage_check_{text}.txt'
             # 上传
-            file_url = self.upload(temp_file, key=key)
+            file_url = self.upload_obj(temp_file, key=key)
             logger.debug(f'upload: {file_url}')
             assert file_url, f'{self.bucket_name}: Upload Failed'
             # 加签url

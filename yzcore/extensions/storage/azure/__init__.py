@@ -9,7 +9,7 @@ import traceback
 from datetime import datetime, timedelta
 from io import BytesIO
 from typing import Union, IO, AnyStr
-from pathlib import PurePath
+from os import PathLike
 
 from yzcore.extensions.storage.base import StorageManagerBase, StorageRequestError, logger
 from yzcore.extensions.storage.schemas import AzureConfig
@@ -152,18 +152,27 @@ class AzureManager(StorageManagerBase):
         with open(local_name, 'wb') as f:
             f.write(blob_client.download_blob().readall())
 
-    def upload_file(self, filepath: Union[str, PurePath], key: str, **kwargs):
+    def upload_file(self, filepath: Union[str, PathLike], key: str, **kwargs):
+        """上传文件流"""
         with open(filepath, 'rb') as f:
             return self.upload_obj(f, key)
 
     def upload_obj(self, file_obj: Union[IO, AnyStr], key: str, **kwargs):
+        """上传文件流"""
         try:
+            content_settings = ContentSettings(content_type=self.parse_content_type(key))
             blob_client = self.container_client.get_blob_client(blob=key)
-            blob_client.upload_blob(file_obj)
+            blob_client.upload_blob(file_obj, overwrite=True, content_settings=content_settings)
             return self.get_file_url(key)
         except Exception:
             logger.error(f'azure blob upload error: {traceback.format_exc()}')
             raise StorageRequestError(f'azure blob upload error')
+
+    def delete_object(self, key: str):
+        """删除文件"""
+        blob_client = self.container_client.get_blob_client(blob=key)
+        blob_client.delete_blob(delete_snapshots='include')
+        return True
 
     def get_policy(
             self,

@@ -8,7 +8,7 @@
 import base64
 import json
 from typing import Union, IO, AnyStr
-from pathlib import PurePath
+from os import PathLike
 
 from yzcore.extensions.storage.base import StorageManagerBase, StorageRequestError
 from yzcore.extensions.storage.obs.utils import wrap_request_return_bool
@@ -125,7 +125,8 @@ class ObsManager(StorageManagerBase):
         if resp.status == 404:
             raise NotFoundObject()
 
-    def upload_file(self, filepath: Union[str, PurePath], key: str, **kwargs):
+    def upload_file(self, filepath: Union[str, PathLike], key: str, **kwargs):
+        """上传文件"""
         headers = obs.PutObjectHeader(contentType=self.parse_content_type(key))
         resp = self.obsClient.putFile(
             self.bucket_name, key, filepath, headers=headers)
@@ -135,6 +136,7 @@ class ObsManager(StorageManagerBase):
         return self.get_file_url(key)
 
     def upload_obj(self, file_obj: Union[IO, AnyStr], key: str, **kwargs):
+        """上传文件流"""
         headers = obs.PutObjectHeader(contentType=self.parse_content_type(key))
         resp = self.obsClient.putContent(
             self.bucket_name, key, content=file_obj, headers=headers)
@@ -142,6 +144,11 @@ class ObsManager(StorageManagerBase):
             msg = resp.errorMessage
             raise StorageRequestError(f'obs upload error: {msg}')
         return self.get_file_url(key)
+
+    def delete_object(self, key: str):
+        """删除文件"""
+        self.obsClient.deleteObject(self.bucket_name, key)
+        return True
 
     def get_policy(
             self,
@@ -199,7 +206,7 @@ class ObsManager(StorageManagerBase):
         # 兼容 oss.update_file_headers
         obs_headers = SetObjectMetadataHeader()
         obs_headers.contentType = headers['Content-Type']  # oss 和 obs的参数名称不相同
-        resp = self.obsClient.setObjectMetadata(self.bucket_name, key, obs_headers)
+        resp = self.obsClient.setObjectMetadata(self.bucket_name, key, headers=obs_headers)
         if resp.status == 404:
             raise NotFoundObject()
         return True
