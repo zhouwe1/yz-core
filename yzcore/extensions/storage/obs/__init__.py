@@ -204,7 +204,7 @@ class ObsManager(StorageManagerBase):
         # 兼容 oss.update_file_headers
         obs_headers = SetObjectMetadataHeader()
         obs_headers.contentType = headers.get('Content-Type')  # oss 和 obs的参数名称不相同
-        self.obsClient.setObjectMetadata(self.bucket_name, key, obs_headers)
+        self.obsClient.setObjectMetadata(self.bucket_name, key, headers=obs_headers)
         return True
 
     def file_exists(self, key):
