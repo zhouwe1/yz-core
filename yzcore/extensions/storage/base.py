@@ -327,7 +327,7 @@ class StorageManagerBase(metaclass=ABCMeta):
     def _get_key_from_url_minio(self, url, urldecode=False):
         """
         从URL中获取对象存储key
-        minio/s3/azure: 去掉最前面的f'{bucket_name}/'
+        minio/s3/azure: 去掉最前面的 f'/{bucket_name}/'
         """
         url_path = get_url_path(url, urldecode)
-        return url_path.replace(f'{self.bucket_name}/', '', 1)
+        return url_path[len(self.bucket_name)+2:]

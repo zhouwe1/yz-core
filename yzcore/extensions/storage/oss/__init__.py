@@ -158,21 +158,6 @@ class OssManager(StorageManagerBase):
     def put_sign_url(self, key):
         return self.bucket.sign_url("PUT", key, self.policy_expire_time)
 
-    def delete_cache_file(self, filename):
-        """删除文件缓存"""
-        filepath = os.path.abspath(os.path.join(self.cache_path, filename))
-        assert os.path.isfile(filepath), '非文件或文件不存在'
-        os.remove(filepath)
-
-    def search_cache_file(self, filename):
-        """文件缓存搜索"""
-        # 拼接绝对路径
-        filepath = os.path.abspath(os.path.join(self.cache_path, filename))
-        if os.path.isfile(filepath):
-            return filepath
-        else:
-            return None
-
     def iter_objects(self, prefix='', marker='', delimiter='', max_keys=100):
         """
         遍历bucket下的文件

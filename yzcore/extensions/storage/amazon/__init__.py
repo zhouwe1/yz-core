@@ -65,12 +65,13 @@ class S3Manager(StorageManagerBase):
         pass
 
     def get_sign_url(self, key, expire=0):
-        return self.client.generate_presigned_url(
+        url = self.client.generate_presigned_url(
             ClientMethod='get_object',
             Params={'Bucket': self.bucket_name, 'Key': key},
             ExpiresIn=expire or self.private_expire_time,
             HttpMethod='GET',
         )
+        return '//' + url.split('//', 1)[-1]
 
     def post_sign_url(self, key):
         """"
