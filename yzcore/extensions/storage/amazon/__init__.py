@@ -174,7 +174,6 @@ class S3Manager(StorageManagerBase):
             **kwargs
     ):
         form_data = self.post_sign_url(filepath)
-        print('form_data', form_data)
         data = {
             'mode': self.mode,
             'host': form_data['url'],

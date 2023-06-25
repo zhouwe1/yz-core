@@ -4,11 +4,9 @@ from typing import Union, IO
 from abc import ABCMeta, abstractmethod
 from urllib.request import urlopen
 from urllib.error import URLError
-from urllib.parse import urlparse, unquote
 from ssl import SSLCertVerificationError
-from pathlib import PurePath
 
-from yzcore.extensions.storage.utils import create_temp_file
+from yzcore.extensions.storage.utils import create_temp_file, get_filename, get_url_path
 from yzcore.extensions.storage.const import IMAGE_FORMAT_SET, CONTENT_TYPE, DEFAULT_CONTENT_TYPE
 from yzcore.extensions.storage.schemas import BaseConfig
 from yzcore.exceptions import StorageRequestError
@@ -131,7 +129,7 @@ class StorageManagerBase(metaclass=ABCMeta):
         else:
             if not local_name:
                 if path:
-                    local_name = os.path.abspath(os.path.join(self.cache_path, path, self.get_filename(key)))
+                    local_name = os.path.abspath(os.path.join(self.cache_path, path, get_filename(key)))
                 else:
                     local_name = os.path.abspath(os.path.join(self.cache_path, key))
             self.make_dir(os.path.dirname(local_name))
@@ -146,12 +144,12 @@ class StorageManagerBase(metaclass=ABCMeta):
     def download_file(self, key, local_name, **kwargs):
         """下载文件"""
 
-    def upload(self, filepath: Union[str, PurePath], key: str, **kwargs):
+    def upload(self, filepath: Union[str, os.PathLike], key: str, **kwargs):
         """上传文件"""
         return self.upload_file(filepath, key, **kwargs)
 
     @abstractmethod
-    def upload_file(self, filepath: Union[str, PurePath], key: str, **kwargs):
+    def upload_file(self, filepath: Union[str, os.PathLike], key: str, **kwargs):
         """上传文件"""
 
     @abstractmethod
@@ -192,7 +190,7 @@ class StorageManagerBase(metaclass=ABCMeta):
         return u'//{}/{}'.format(self.endpoint, self.bucket_name)
 
     def get_file_url(self, key, with_scheme=False):
-        """oss/obs bucket_name+endpoint的方式拼接file_url"""
+        """oss/obs: f'{bucket_name}.{endpoint}' 的方式拼接file_url"""
         if not any((self.image_domain, self.asset_domain)):
             resource_url = u"//{}.{}/{}".format(self.bucket_name, self.endpoint, key)
         elif key.split('.')[-1].lower() in IMAGE_FORMAT_SET:
@@ -204,7 +202,7 @@ class StorageManagerBase(metaclass=ABCMeta):
         return resource_url
 
     def _get_file_url_minio(self, key, with_scheme=False):
-        """minio/s3/azure endpoint+bucket_name的方式拼接file_url"""
+        """minio/s3/azure: f'{endpoint}/{bucket_name}' 的方式拼接file_url"""
         if not any((self.image_domain, self.asset_domain)):
             resource_url = u"//{}/{}/{}".format(self.endpoint, self.bucket_name, key)
         elif key.split('.')[-1].lower() in IMAGE_FORMAT_SET:
@@ -319,26 +317,17 @@ class StorageManagerBase(metaclass=ABCMeta):
         return CONTENT_TYPE.get(ext, DEFAULT_CONTENT_TYPE)
 
     def get_key_from_url(self, url, urldecode=False):
-        """从URL中获取对象存储key"""
-        if url.startswith('//'):
-            url = 'https:' + url
-        elif not url.startswith('http'):
-            url = 'https://' + url
-        url_parse = urlparse(url)
-        path = url_parse.path
-        if urldecode:
-            path = unquote(path)
-        return path[1:]  # 去掉最前面的 /
+        """
+        从URL中获取对象存储key
+        oss/obs: 去掉最前面的 /
+        """
+        url_path = get_url_path(url, urldecode)
+        return url_path[1:]
 
     def _get_key_from_url_minio(self, url, urldecode=False):
-        """从URL中获取对象存储key"""
-        path = url.split(self.bucket_name + '/')[-1]
-        if urldecode:
-            path = unquote(path)
-        return path
-
-    @staticmethod
-    def get_filename(key):
-        """从key中提取文件名，不包含路径"""
-        key = unquote(key)
-        return key.split('/')[-1]
+        """
+        从URL中获取对象存储key
+        minio/s3/azure: 去掉最前面的f'{bucket_name}/'
+        """
+        url_path = get_url_path(url, urldecode)
+        return url_path.replace(f'{self.bucket_name}/', '', 1)
