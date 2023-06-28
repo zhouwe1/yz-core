@@ -94,7 +94,18 @@ class AzureManager(StorageManagerBase):
         pass
 
     def put_sign_url(self, key):
-        pass
+        """
+        获取put上传文件的链接
+        请求必填的headers: x-ms-blob-type:BlockBlob
+        文件直接放入 body：binary中
+        """
+        expire_time = datetime.utcnow() + timedelta(seconds=self.policy_expire_time)
+        blob_client = self.container_client.get_blob_client(blob=key)
+        sas_sign = generate_blob_sas(
+            account_name=self.account_name, container_name=self.bucket_name, blob_name=key, account_key=self.account_key,
+            expiry=expire_time, permission=BlobSasPermissions(write=True)
+        )
+        return f'{blob_client.url}?{sas_sign}'
 
     def get_file_url(self, key, with_scheme=False):
         return self._get_file_url_minio(key, with_scheme)
@@ -194,9 +205,14 @@ class AzureManager(StorageManagerBase):
     ):
         """
         授权给第三方上传
-        :param filepath:
+        :param filepath: 需要在前一步拼接好完整的key
         :param callback_url: 对象存储的回调地址
         :param callback_data: 需要回传的参数
         :return:
         """
-        pass
+        return {
+            'mode': self.mode,
+            'host': self.put_sign_url(filepath),
+            'headers': {'x-ms-blob-type': 'BlockBlob'},
+            'callback': {'url': callback_url, 'data': callback_data},
+        }
