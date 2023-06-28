@@ -13,7 +13,7 @@ from os import PathLike
 
 from yzcore.extensions.storage.base import StorageManagerBase, StorageRequestError, logger
 from yzcore.extensions.storage.schemas import AzureConfig
-from yzcore.extensions.storage.azure.utils import wrap_request_raise_404, get_content_md5
+from yzcore.extensions.storage.azure.utils import wrap_request_raise_404
 from yzcore.utils.time_utils import datetime2str
 
 
@@ -179,10 +179,7 @@ class AzureManager(StorageManagerBase):
     def upload_obj(self, file_obj: Union[IO, AnyStr], key: str, **kwargs):
         """上传文件流"""
         try:
-            content_settings = ContentSettings(
-                content_type=self.parse_content_type(key),
-                content_md5=get_content_md5(file_obj),
-            )
+            content_settings = ContentSettings(content_type=self.parse_content_type(key))
             blob_client = self.container_client.get_blob_client(blob=key)
             blob_client.upload_blob(file_obj, overwrite=True, content_settings=content_settings)
             return self.get_file_url(key)
