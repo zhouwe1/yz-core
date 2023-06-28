@@ -13,7 +13,7 @@ from os import PathLike
 
 from yzcore.extensions.storage.base import StorageManagerBase, StorageRequestError, logger
 from yzcore.extensions.storage.schemas import AzureConfig
-from yzcore.extensions.storage.azure.utils import wrap_request_raise_404
+from yzcore.extensions.storage.azure.utils import wrap_request_raise_404, get_content_md5
 from yzcore.utils.time_utils import datetime2str
 
 
@@ -87,7 +87,8 @@ class AzureManager(StorageManagerBase):
             account_name=self.account_name, container_name=self.bucket_name, blob_name=key, account_key=self.account_key,
             expiry=expire_time, permission=BlobSasPermissions(read=True)
         )
-        return f'{blob_client.url}?{sas_sign}'
+        url = f'{blob_client.url}?{sas_sign}'
+        return '//' + url.split('//', 1)[-1]
 
     def post_sign_url(self, key):
         pass
@@ -119,10 +120,14 @@ class AzureManager(StorageManagerBase):
 
     @wrap_request_raise_404
     def get_object_meta(self, key: str):
+        """azure的etag不像 oss/obs/minio 是文件的md5，而content_md5需要在上传时指定"""
         blob_client = self.container_client.get_blob_client(blob=key)
         metadata = blob_client.get_blob_properties()
+        content_md5 = metadata['content_settings']['content_md5'] or ''
+        if isinstance(content_md5, bytearray):
+            content_md5 = content_md5.hex()
         return {
-            'etag': '',  # metadata['etag'].strip('"').lower(), azure的etag计算方式和oss/obs/minio 不一样
+            'etag': content_md5.lower(),  # metadata['etag'].strip('"').lower()
             'size': metadata['size'],
             'last_modified': datetime2str(metadata['last_modified']),
             'content_type': metadata['content_settings']['content_type']
@@ -131,6 +136,9 @@ class AzureManager(StorageManagerBase):
     @wrap_request_raise_404
     def _set_object_headers(self, key: str, headers: dict):
         blob_client = self.container_client.get_blob_client(blob=key)
+        if not any([headers.get('content_md5'), headers.get('Content-MD5')]):
+            metadata = blob_client.get_blob_properties()
+            headers['content_md5'] = metadata['content_settings']['content_md5']
         blob_client.set_http_headers(ContentSettings(**headers))
         return True
 
@@ -160,7 +168,10 @@ class AzureManager(StorageManagerBase):
     def upload_obj(self, file_obj: Union[IO, AnyStr], key: str, **kwargs):
         """上传文件流"""
         try:
-            content_settings = ContentSettings(content_type=self.parse_content_type(key))
+            content_settings = ContentSettings(
+                content_type=self.parse_content_type(key),
+                content_md5=get_content_md5(file_obj),
+            )
             blob_client = self.container_client.get_blob_client(blob=key)
             blob_client.upload_blob(file_obj, overwrite=True, content_settings=content_settings)
             return self.get_file_url(key)

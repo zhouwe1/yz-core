@@ -8,12 +8,12 @@
 import json
 import traceback
 from datetime import timedelta, datetime
-from io import BytesIO
 from os import PathLike
 from typing import Union, IO, AnyStr
 
 from yzcore.extensions.storage.base import StorageManagerBase, StorageRequestError, logger
 from yzcore.extensions.storage.schemas import MinioConfig
+from yzcore.extensions.storage.utils import AnyStr2BytesIO
 from yzcore.extensions.storage.minio.utils import wrap_request_return_bool, wrap_request_raise_404
 from yzcore.utils.time_utils import datetime2str
 
@@ -196,10 +196,8 @@ class MinioManager(StorageManagerBase):
         """上传文件流"""
         client = self._internal_minio_client_first()
         try:
-            if isinstance(file_obj, bytes):
-                file_obj = BytesIO(file_obj)
-            elif isinstance(file_obj, str):
-                file_obj = BytesIO(file_obj.encode())
+            if isinstance(file_obj, (str, bytes)):
+                file_obj = AnyStr2BytesIO(file_obj)
             content_type = self.parse_content_type(key)
             client.put_object(self.bucket_name, key, file_obj, length=-1, content_type=content_type,
                               part_size=1024 * 1024 * 5)

@@ -7,11 +7,11 @@
 """
 import traceback
 from typing import Union, IO, AnyStr
-from io import BytesIO
 from os import PathLike
 
 from yzcore.extensions.storage.base import StorageManagerBase, StorageRequestError, logger
 from yzcore.extensions.storage.schemas import S3Config
+from yzcore.extensions.storage.utils import AnyStr2BytesIO
 from yzcore.extensions.storage.amazon.utils import wrap_request_return_bool, wrap_request_raise_404
 from yzcore.utils import datetime2str
 
@@ -152,10 +152,8 @@ class S3Manager(StorageManagerBase):
         """上传文件流"""
         extra_args = {'ContentType': self.parse_content_type(key)}
         try:
-            if isinstance(file_obj, bytes):
-                file_obj = BytesIO(file_obj)
-            elif isinstance(file_obj, str):
-                file_obj = BytesIO(file_obj.encode())
+            if isinstance(file_obj, (str, bytes)):
+                file_obj = AnyStr2BytesIO(file_obj)
             self.client.upload_fileobj(Bucket=self.bucket_name, Key=key, Fileobj=file_obj, ExtraArgs=extra_args)
             return self.get_file_url(key)
         except Exception:
