@@ -258,8 +258,8 @@ class OssManager(StorageManagerBase):
         return dict(
             mode=self.mode,
             dir=filepath,
-            OSSAccessKeyId=self.access_key_id,
             host=f'{self.scheme}:{self.host}',
+            OSSAccessKeyId=self.access_key_id,
             policy=policy_encode.decode(),
             signature=sign,
             callback=base64_callback_body.decode(),

@@ -1,6 +1,6 @@
 import os
 import shutil
-from typing import Union, IO
+from typing import Union, IO, AnyStr
 from abc import ABCMeta, abstractmethod
 from urllib.request import urlopen
 from urllib.error import URLError
@@ -11,6 +11,7 @@ from yzcore.extensions.storage.const import IMAGE_FORMAT_SET, CONTENT_TYPE, DEFA
 from yzcore.extensions.storage.schemas import BaseConfig
 from yzcore.exceptions import StorageRequestError
 from yzcore.logger import get_logger
+from yzcore.utils.decorator import cached_property
 
 
 logger = get_logger(__name__)
@@ -153,7 +154,7 @@ class StorageManagerBase(metaclass=ABCMeta):
         """上传文件"""
 
     @abstractmethod
-    def upload_obj(self, file_obj: IO, key: str, **kwargs):
+    def upload_obj(self, file_obj: Union[IO, AnyStr], key: str, **kwargs):
         """上传文件流"""
 
     @abstractmethod
@@ -181,18 +182,18 @@ class StorageManagerBase(metaclass=ABCMeta):
         :return:
         """
 
-    @property
+    @cached_property
     def host(self):
         return u'//{}.{}'.format(self.bucket_name, self.endpoint)
 
-    @property
+    @cached_property
     def _host_minio(self):
         return u'//{}/{}'.format(self.endpoint, self.bucket_name)
 
     def get_file_url(self, key, with_scheme=False):
         """oss/obs: f'{bucket_name}.{endpoint}' 的方式拼接file_url"""
         if not any((self.image_domain, self.asset_domain)):
-            resource_url = u"//{}.{}/{}".format(self.bucket_name, self.endpoint, key)
+            resource_url = u"{}/{}".format(self.host, key)
         elif key.split('.')[-1].lower() in IMAGE_FORMAT_SET:
             resource_url = u"//{domain}/{key}".format(domain=self.image_domain, key=key)
         else:
@@ -204,7 +205,7 @@ class StorageManagerBase(metaclass=ABCMeta):
     def _get_file_url_minio(self, key, with_scheme=False):
         """minio/s3/azure: f'{endpoint}/{bucket_name}' 的方式拼接file_url"""
         if not any((self.image_domain, self.asset_domain)):
-            resource_url = u"//{}/{}/{}".format(self.endpoint, self.bucket_name, key)
+            resource_url = u"{}/{}".format(self._host_minio, key)
         elif key.split('.')[-1].lower() in IMAGE_FORMAT_SET:
             resource_url = u"//{domain}/{bucket}/{key}".format(
                 domain=self.image_domain, bucket=self.bucket_name, key=key)

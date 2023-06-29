@@ -232,8 +232,8 @@ class MinioManager(StorageManagerBase):
         form_data = self.post_sign_url(filepath)
         data = {
             'mode': self.mode,
-            'host': f'{self.scheme}:{self.host}',
             'dir': filepath,
+            'host': f'{self.scheme}:{self.host}',
             'success_action_status': 200,
             'callback': {'url': callback_url, 'data': callback_data},
             # 'Content-Type': '上传时指定Content-Type',

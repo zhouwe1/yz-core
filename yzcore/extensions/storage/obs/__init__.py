@@ -192,11 +192,11 @@ class ObsManager(StorageManagerBase):
 
         data = dict(
             mode=self.mode,
-            AccessKeyId=self.access_key_id,
+            dir=filepath,
             host=f'{self.scheme}:{self.host}',
+            AccessKeyId=self.access_key_id,
             policy=res.policy,
             signature=res.signature,
-            dir=filepath
         )
         if not callback_directly:
             data['callback'] = {'url': callback_url, 'data': callback_data}

@@ -173,6 +173,7 @@ class S3Manager(StorageManagerBase):
             **kwargs
     ):
         form_data = self.post_sign_url(filepath)
+        form_data['fields'].pop('key')
         data = {
             'mode': self.mode,
             'host': form_data['url'],
@@ -180,7 +181,6 @@ class S3Manager(StorageManagerBase):
             'callback': {'url': callback_url, 'data': callback_data},
             **form_data['fields'],
         }
-        data.pop('key')
         return data
 
     @property
