@@ -233,8 +233,7 @@ class OssManager(StorageManagerBase):
             filepath: str,
             callback_url: str,
             callback_data: dict = None,
-            callback_content_type: str = "application/json",
-            callback_directly: bool = True,
+            callback_content_type: str = "application/x-www-form-urlencoded",
     ):
         """
         授权给第三方上传
@@ -245,7 +244,6 @@ class OssManager(StorageManagerBase):
         :param callback_content_type: 回调时的Content-Type
                "application/json"
                "application/x-www-form-urlencoded"
-        :param callback_directly: True 由对象存储自动发起回调 / False 需要前端主动发起回调  oss不需要前端发起回调
         :return:
         """
         params = parse.urlencode(

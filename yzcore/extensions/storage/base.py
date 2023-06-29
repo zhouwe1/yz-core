@@ -144,19 +144,17 @@ class StorageManagerBase(metaclass=ABCMeta):
             self,
             filepath: str,
             callback_url: str,
-            callback_data: dict = None,
-            callback_content_type: str = "application/json",
-            callback_directly: bool = True,
+            callback_data: dict,
+            callback_content_type: str,
     ):
         """
         授权给第三方上传
-        :param filepath:
+        :param filepath: 对象存储中的存放路径，key的前缀
         :param callback_url: 对象存储的回调地址
         :param callback_data: 需要回传的参数
         :param callback_content_type: 回调时的Content-Type
                "application/json"
                "application/x-www-form-urlencoded"
-        :param callback_directly: True 由对象存储自动发起回调 / False 需要前端主动发起回调
         :return:
         """
 
@@ -234,7 +232,7 @@ class StorageManagerBase(metaclass=ABCMeta):
             logger.debug(f'get_object_meta: {metadata}')
             assert metadata, f'{self.bucket_name}: Get object metadata Failed'
             # 修改文件元数据
-            assert self.update_file_headers(key, {'Content-Type': 'text/plain'}), f'{self.bucket_name}: Update object metadata Failed'
+            assert self.update_file_headers(key, {'Content-Type': 'application/octet-stream'}), f'{self.bucket_name}: Update object metadata Failed'
             logger.debug(f'update_file_headers: {self.get_object_meta(key)}')
 
             # 遍历文件

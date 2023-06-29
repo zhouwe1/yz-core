@@ -205,26 +205,21 @@ class MinioManager(StorageManagerBase):
             self,
             filepath: str,
             callback_url: str,
-            callback_data: dict = None,
-            callback_content_type: str = "application/json",
-            callback_directly: bool = False,
+            callback_data: dict,
+            **kwargs,
     ):
         """
-        授权给第三方上传
+        授权给第三方上传, minio无回调功能，返回callback数据给前端发起回调请求
         :param filepath:
         :param callback_url: 对象存储的回调地址
         :param callback_data: 需要回传的参数
-        :param callback_content_type: 回调时的Content-Type
-               "application/json"
-               "application/x-www-form-urlencoded"
-        :param callback_directly:  False 需要前端主动发起回调 minio没有回调功能，只能由前端发起
         :return:
         """
         form_data = self.post_sign_url(filepath)
         data = {
-            'mode': 'minio',
-            'host': f'{self.scheme}:{self.host}',
+            'mode': self.mode,
             'dir': filepath,
+            'host': f'{self.scheme}:{self.host}',
             'success_action_status': 200,
             'callback': {'url': callback_url, 'data': callback_data},
             # 'Content-Type': '上传时指定Content-Type',
