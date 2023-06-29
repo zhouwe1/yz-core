@@ -27,6 +27,7 @@ class ObsManager(StorageManagerBase):
 
     def __init__(self, conf: ObsConfig):
         super(ObsManager, self).__init__(conf)
+        self.callback_directly = conf.callback_directly
 
         self.__init()
 
@@ -75,7 +76,8 @@ class ObsManager(StorageManagerBase):
         return self.obsClient.deleteBucket(bucket_name)
 
     def get_sign_url(self, key, expire=0):
-        res = self.obsClient.createSignedUrl("GET", self.bucket_name, objectKey=key, expires=expire or self.private_expire_time)
+        res = self.obsClient.createSignedUrl(
+            "GET", self.bucket_name, objectKey=key, expires=expire or self.private_expire_time)
         return '//' + res.signedUrl.split('//', 1)[-1]
 
     def post_sign_url(self, key, form_param=None):
@@ -156,10 +158,11 @@ class ObsManager(StorageManagerBase):
             callback_url: str,
             callback_data: dict,
             callback_content_type: str = "application/json",
-            callback_directly: bool = True,
     ):
         """
         授权给第三方上传
+        由于华为云只有单az模式支持回调，多az不支持，可以根据不同情况选择obs回调或者前端发起回调
+        callback_directly: True OBS直接发起回调 / False 由前端发起回调
         :param filepath:
         :param callback_url:
         :param callback_data: 需要回传的参数
@@ -167,11 +170,9 @@ class ObsManager(StorageManagerBase):
                "application/json"
                "application/x-www-form-urlencoded"
                 华为云目前只能用application/json格式，用x-www-form-urlencoded时回调数据会在url中
-        :param callback_directly: True OBS直接发起回调 / False 由前端发起回调
-                由于华为云只有单az模式支持回调，多az不支持，可以根据不同情况选择obs回调或者前端发起回调
         :return:
         """
-        if callback_directly:
+        if self.callback_directly:
             callback_body = '{"filepath":"$(key)","etag":"$(etag)","size":$(fsize),"mime_type":"$(ext)",' \
                             '"data":' \
                             + json.dumps(callback_data) + '}'
@@ -198,7 +199,7 @@ class ObsManager(StorageManagerBase):
             policy=res.policy,
             signature=res.signature,
         )
-        if not callback_directly:
+        if not self.callback_directly:
             data['callback'] = {'url': callback_url, 'data': callback_data}
         return data
 

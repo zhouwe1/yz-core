@@ -32,7 +32,7 @@ class OssConfig(BaseConfig):
 
 
 class ObsConfig(BaseConfig):
-    pass
+    callback_directly: bool = True  # True obs直接发起回调 / False 前端发起回调
 
 
 class MinioConfig(BaseConfig):
