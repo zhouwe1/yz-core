@@ -197,7 +197,7 @@ class AzureManager(StorageManagerBase):
             self,
             filepath: str,
             callback_url: str,
-            callback_data: dict = None,
+            callback_data: dict,
             **kwargs
     ):
         """

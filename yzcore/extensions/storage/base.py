@@ -281,6 +281,10 @@ class StorageManagerBase(metaclass=ABCMeta):
             logger.debug(f'iter_objects: {objects}')
             assert objects, f'{self.bucket_name} iter objects Failed'
 
+            # 删除文件
+            self.delete_object(key)
+            assert not self.file_exists(key), f'{self.bucket_name} delete object Failed'
+
             return True
         except AssertionError as e:
             raise StorageRequestError(e)

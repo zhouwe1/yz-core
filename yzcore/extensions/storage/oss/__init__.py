@@ -224,7 +224,6 @@ class OssManager(StorageManagerBase):
             callback_url: str,
             callback_data: dict,
             callback_content_type: str = "application/x-www-form-urlencoded",
-            **kwargs
     ):
         """
         授权给第三方上传
