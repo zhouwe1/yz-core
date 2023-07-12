@@ -33,7 +33,6 @@ class MinioManager(StorageManagerBase):
     def __init__(self, conf: MinioConfig):
         super(MinioManager, self).__init__(conf)
         self.internal_endpoint = conf.internal_endpoint
-        # 禁用internal_endpoint, 默认为False，只有minio部署在k8s集群而windows转换机无法访问到时才需要禁用
         self.disable_internal_endpoint = conf.disable_internal_endpoint
         self.internal_minioClient = None
 

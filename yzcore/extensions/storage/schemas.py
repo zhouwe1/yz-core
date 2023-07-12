@@ -36,8 +36,8 @@ class ObsConfig(BaseConfig):
 
 
 class MinioConfig(BaseConfig):
-    internal_endpoint: str = None
-    disable_internal_endpoint: bool = False
+    internal_endpoint: str = None  # minio的内网地址
+    disable_internal_endpoint: bool = False  # 禁用internal_endpoint, 默认为False，目前只有minio部署在k8s集群而windows转换机无法访问到时才需要禁用
 
 
 class AzureConfig(BaseConfig):
