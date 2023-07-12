@@ -257,6 +257,7 @@ class StorageManagerBase(metaclass=ABCMeta):
             text = temp_file.getvalue().decode()
 
             key = f'storage_check_{text}.txt'
+            logger.debug(f'file_exists: {self.file_exists(key)}')
             # 上传
             file_url = self.upload_obj(temp_file, key=key)
             logger.debug(f'upload: {file_url}')
@@ -283,7 +284,13 @@ class StorageManagerBase(metaclass=ABCMeta):
 
             # 删除文件
             self.delete_object(key)
+            logger.debug(f'file_exists: {self.file_exists(key)}')
             assert not self.file_exists(key), f'{self.bucket_name} delete object Failed'
+
+            # 生成post policy
+            policy = self.get_policy(filepath='upload_policy/', callback_url='https://hub.realibox.com/api/hub/v1/test', callback_data={'a':'b'})
+            logger.debug(f'get_policy: {policy}')
+            assert isinstance(policy, dict), f'{self.bucket_name}: Get policy Failed'
 
             return True
         except AssertionError as e:
