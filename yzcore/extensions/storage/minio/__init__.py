@@ -6,19 +6,23 @@
 @desc: minio对象存储封装
 """
 import json
-import os
-from urllib.parse import unquote
-
-from yzcore.extensions.storage.base import StorageManagerBase, StorageRequestError, logger, IMAGE_FORMAT_SET
-from yzcore.extensions.storage.schemas import MinioConfig
-from yzcore.utils.time_utils import datetime2str
+import traceback
 from datetime import timedelta, datetime
+from os import PathLike
+from typing import Union, IO, AnyStr
+
+from yzcore.extensions.storage.base import StorageManagerBase, StorageRequestError, logger
+from yzcore.extensions.storage.schemas import MinioConfig
+from yzcore.extensions.storage.utils import AnyStr2BytesIO
+from yzcore.extensions.storage.minio.utils import wrap_request_return_bool, wrap_request_raise_404
+from yzcore.utils.time_utils import datetime2str
 
 
 try:
     from minio import Minio
     from minio.datatypes import PostPolicy
     from minio.commonconfig import CopySource
+    from minio.deleteobjects import DeleteObject
     from minio.error import S3Error
 except:
     Minio = None
@@ -29,7 +33,6 @@ class MinioManager(StorageManagerBase):
     def __init__(self, conf: MinioConfig):
         super(MinioManager, self).__init__(conf)
         self.internal_endpoint = conf.internal_endpoint
-        # 禁用internal_endpoint, 默认为False，只有windows转换机不在k8s集群才需要禁用
         self.disable_internal_endpoint = conf.disable_internal_endpoint
         self.internal_minioClient = None
 
@@ -58,12 +61,6 @@ class MinioManager(StorageManagerBase):
                 secret_key=self.access_key_secret,
                 secure=False,
             )
-
-        if self.cache_path:
-            try:
-                os.makedirs(self.cache_path)
-            except OSError:
-                pass
 
     def _internal_minio_client_first(self):
         """优先使用内网连接minio服务"""
@@ -137,9 +134,9 @@ class MinioManager(StorageManagerBase):
     def put_sign_url(self, key):
         return self.minioClient.presigned_put_object(self.bucket_name, key)
 
-    def iter_objects(self, prefix='', marker=None, delimiter=None, max_keys=100):
+    def iter_objects(self, prefix='', **kwargs):
         client = self._internal_minio_client_first()
-        objects = client.list_objects(self.bucket_name, prefix=prefix, recursive=True)
+        objects = client.list_objects(self.bucket_name, prefix=prefix)
         _result = []
         for obj in objects:
             _result.append({
@@ -149,6 +146,7 @@ class MinioManager(StorageManagerBase):
             })
         return _result
 
+    @wrap_request_raise_404
     def get_object_meta(self, key: str):
         """获取文件基本元信息，包括该Object的ETag、Size（文件大小）、LastModified，Content-Type，并不返回其内容"""
         client = self._internal_minio_client_first()
@@ -160,53 +158,68 @@ class MinioManager(StorageManagerBase):
             'content_type': meta.content_type,
         }
 
-    def update_file_headers(self, key, headers: dict):
+    @wrap_request_raise_404
+    def _set_object_headers(self, key: str, headers: dict):
+        """更新文件的metadata，主要用于更新Content-Type"""
         client = self._internal_minio_client_first()
         client.copy_object(self.bucket_name, key, CopySource(self.bucket_name, key), metadata=headers, metadata_directive='REPLACE')
         return True
 
+    @wrap_request_return_bool
     def file_exists(self, key):
         client = self._internal_minio_client_first()
-        try:
-            client.stat_object(self.bucket_name, key)
-            return True
-        except S3Error as e:
-            if e.code == 'NoSuchKey':
-                return False
-            raise e
+        return client.stat_object(self.bucket_name, key)
 
+    @wrap_request_raise_404
     def download_stream(self, key, **kwargs):
         client = self._internal_minio_client_first()
         return client.get_object(self.bucket_name, key)
 
+    @wrap_request_raise_404
     def download_file(self, key, local_name, **kwargs):
         client = self._internal_minio_client_first()
         client.fget_object(self.bucket_name, key, local_name)
 
-    def upload(self, filepath, key: str):
-        """
-        文件上传
-        :param filepath:
-        :param key:
-        """
+    def upload_file(self, filepath: Union[str, PathLike], key: str, **kwargs):
+        """上传文件"""
         client = self._internal_minio_client_first()
         try:
             content_type = self.parse_content_type(key)
-
-            if isinstance(filepath, str):
-                client.fput_object(self.bucket_name, key, filepath, content_type=content_type)
-            else:
-                client.put_object(self.bucket_name, key, filepath, length=-1, content_type=content_type, part_size=1024*1024*5)
+            client.fput_object(self.bucket_name, key, filepath, content_type=content_type)
             return self.get_file_url(key)
-        except Exception as e:
-            raise StorageRequestError(f'minio upload error: {e}')
+        except Exception:
+            logger.error(f'minio upload error: {traceback.format_exc()}')
+            raise StorageRequestError('minio upload error')
+
+    def upload_obj(self, file_obj: Union[IO, AnyStr], key: str, **kwargs):
+        """上传文件流"""
+        client = self._internal_minio_client_first()
+        try:
+            if isinstance(file_obj, (str, bytes)):
+                file_obj = AnyStr2BytesIO(file_obj)
+            content_type = self.parse_content_type(key)
+            client.put_object(self.bucket_name, key, file_obj, length=-1, content_type=content_type,
+                              part_size=1024 * 1024 * 5)
+            return self.get_file_url(key)
+        except Exception:
+            logger.error(f'minio upload error: {traceback.format_exc()}')
+            raise StorageRequestError('minio upload error')
+
+    def delete_object(self, key: str):
+        """删除文件"""
+        client = self._internal_minio_client_first()
+        errors = client.remove_objects(self.bucket_name, [DeleteObject(key)])
+        for error in errors:
+            logger.error(f'minio delete file error: {error}')
+            raise StorageRequestError('minio delete file error')
+        return True
 
     def get_policy(
             self,
             filepath: str,
             callback_url: str,
             callback_data: dict,
-            **kwargs,
+            **kwargs
     ):
         """
         授权给第三方上传, minio无回调功能，返回callback数据给前端发起回调请求
@@ -229,24 +242,11 @@ class MinioManager(StorageManagerBase):
 
     @property
     def host(self):
-        return u'//{}/{}'.format(self.endpoint, self.bucket_name)
+        return self._host_minio
 
     def get_key_from_url(self, url, urldecode=False):
         """从URL中获取对象存储key"""
-        path = url.split(self.bucket_name + '/')[-1]
-        if urldecode:
-            path = unquote(path)
-        return path
+        return self._get_key_from_url_minio(url, urldecode)
 
     def get_file_url(self, key, with_scheme=False):
-        if not any((self.image_domain, self.asset_domain)):
-            resource_url = u"//{}/{}/{}".format(self.endpoint, self.bucket_name, key)
-        elif key.split('.')[-1].lower() in IMAGE_FORMAT_SET:
-            resource_url = u"//{domain}/{bucket}/{key}".format(
-                domain=self.image_domain, bucket=self.bucket_name, key=key)
-        else:
-            resource_url = u"//{domain}/{bucket}/{key}".format(
-                domain=self.asset_domain, bucket=self.bucket_name, key=key)
-        if with_scheme:
-            resource_url = self.scheme + ':' + resource_url
-        return resource_url
+        return self._get_file_url_minio(key, with_scheme)

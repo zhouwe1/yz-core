@@ -13,8 +13,11 @@ import hmac
 import datetime
 import hashlib
 from urllib import parse
+from typing import Union, IO, AnyStr
+from os import PathLike
 from yzcore.extensions.storage.base import StorageManagerBase, StorageRequestError
 from yzcore.extensions.storage.oss.const import *
+from yzcore.extensions.storage.oss.utils import wrap_request_return_bool, wrap_request_raise_404
 from yzcore.extensions.storage.schemas import OssConfig
 
 try:
@@ -39,21 +42,16 @@ class OssManager(StorageManagerBase):
 
         if oss2 is None:
             raise ImportError("'oss2' must be installed to use OssManager")
+        if bucket_name:
+            self.bucket_name = bucket_name
 
         self.auth = oss2.Auth(self.access_key_id, self.access_key_secret)
-        self.bucket_name = bucket_name if bucket_name else self.bucket_name
 
         # 优先内网endpoint
         if self.internal_endpoint:
             self.bucket = oss2.Bucket(self.auth, self.internal_endpoint, self.bucket_name)
         else:
             self.bucket = oss2.Bucket(self.auth, self.endpoint, self.bucket_name)
-
-        if self.cache_path:
-            try:
-                os.makedirs(self.cache_path)
-            except OSError:
-                pass
 
     def reload_oss(self, **kwargs):
         """重新加载oss配置"""
@@ -110,17 +108,12 @@ class OssManager(StorageManagerBase):
         return self.service.list_buckets(
             prefix=prefix, marker=marker, max_keys=max_keys, params=params)
 
-    def is_exist_bucket(self, bucket_name=None):
+    @wrap_request_return_bool
+    def is_exist_bucket(self, **kwargs):
         """判断存储空间是否存在"""
-        try:
-            self.bucket.get_bucket_info()
-        except oss2.exceptions.NoSuchBucket:
-            return False
-        except:
-            raise
-        return True
+        return self.bucket.get_bucket_info()
 
-    def delete_bucket(self, bucket_name=None):
+    def delete_bucket(self, **kwargs):
         """删除bucket"""
         try:
             resp = self.bucket.delete_bucket()
@@ -165,21 +158,6 @@ class OssManager(StorageManagerBase):
     def put_sign_url(self, key):
         return self.bucket.sign_url("PUT", key, self.policy_expire_time)
 
-    def delete_cache_file(self, filename):
-        """删除文件缓存"""
-        filepath = os.path.abspath(os.path.join(self.cache_path, filename))
-        assert os.path.isfile(filepath), '非文件或文件不存在'
-        os.remove(filepath)
-
-    def search_cache_file(self, filename):
-        """文件缓存搜索"""
-        # 拼接绝对路径
-        filepath = os.path.abspath(os.path.join(self.cache_path, filename))
-        if os.path.isfile(filepath):
-            return filepath
-        else:
-            return None
-
     def iter_objects(self, prefix='', marker='', delimiter='', max_keys=100):
         """
         遍历bucket下的文件
@@ -198,41 +176,53 @@ class OssManager(StorageManagerBase):
             })
         return _result
 
+    @wrap_request_raise_404
     def download_stream(self, key, process=None):
         return self.bucket.get_object(key, process=process)
 
+    @wrap_request_raise_404
     def download_file(self, key, local_name, process=None):
         self.bucket.get_object_to_file(key, local_name, process=process)
 
-    def upload(self, filepath, key: str, num_threads=2, multipart_threshold=None):
+    def upload_file(self, filepath: Union[str, PathLike], key: str, *, num_threads=2, multipart_threshold=None):
         """
-        上传oss文件
-        :param filepath: 文件路径 或 文件流
+        上传文件流
+        :param filepath: 文件路径
         :param key:
         :param num_threads:
         :param multipart_threshold:
         """
         headers = CaseInsensitiveDict({'Content-Type': self.parse_content_type(key)})
-
-        if isinstance(filepath, str):
-            result = oss2.resumable_upload(
-                self.bucket, key, filepath,
-                headers=headers,
-                num_threads=num_threads,
-                multipart_threshold=multipart_threshold,
-            )
-        else:
-            result = self.bucket.put_object(key, filepath, headers=headers)
-        if result.status != 200:
+        result = oss2.resumable_upload(
+            self.bucket, key, filepath,
+            headers=headers,
+            num_threads=num_threads,
+            multipart_threshold=multipart_threshold,
+        )
+        if result.status // 100 != 2:
             raise StorageRequestError(f'oss upload error: {result.resp}')
         # 返回下载链接
         return self.get_file_url(key)
+
+    def upload_obj(self, file_obj: Union[IO, AnyStr], key: str, **kwargs):
+        """上传文件流"""
+        headers = CaseInsensitiveDict({'Content-Type': self.parse_content_type(key)})
+        result = self.bucket.put_object(key, file_obj, headers=headers)
+        if result.status // 100 != 2:
+            raise StorageRequestError(f'oss upload error: {result.resp}')
+        # 返回下载链接
+        return self.get_file_url(key)
+
+    def delete_object(self, key: str):
+        """删除文件"""
+        self.bucket.delete_object(key)
+        return True
 
     def get_policy(
             self,
             filepath: str,
             callback_url: str,
-            callback_data: dict = None,
+            callback_data: dict,
             callback_content_type: str = "application/x-www-form-urlencoded",
     ):
         """
@@ -265,12 +255,12 @@ class OssManager(StorageManagerBase):
         base64_callback_body = base64.b64encode(callback_param)
 
         return dict(
-            mode='oss',
-            OSSAccessKeyId=self.access_key_id,
+            mode=self.mode,
+            dir=filepath,
             host=f'{self.scheme}:{self.host}',
+            OSSAccessKeyId=self.access_key_id,
             policy=policy_encode.decode(),
             signature=sign,
-            dir=filepath,
             callback=base64_callback_body.decode(),
         )
 
@@ -292,7 +282,6 @@ class OssManager(StorageManagerBase):
     def get_signature(self, policy_encode):
         """
         获取签名
-
         :param policy_encode:
         :return:
         """
@@ -302,7 +291,8 @@ class OssManager(StorageManagerBase):
         sign_result = base64.encodebytes(h.digest()).strip()
         return sign_result.decode()
 
-    def update_file_headers(self, key, headers):
+    @wrap_request_raise_404
+    def _set_object_headers(self, key: str, headers: dict):
         self.bucket.update_object_meta(key, headers)
         return True
 
@@ -310,6 +300,7 @@ class OssManager(StorageManagerBase):
         """检查文件是否存在"""
         return self.bucket.object_exists(key)
 
+    @wrap_request_raise_404
     def get_object_meta(self, key: str):
         """获取文件基本元信息，包括该Object的ETag、Size（文件大小）、LastModified，Content-Type，并不返回其内容"""
         # meta = self.bucket.get_object_meta(key)  # get_object_meta获取到的信息有限

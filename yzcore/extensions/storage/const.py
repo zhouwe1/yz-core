@@ -6,6 +6,8 @@ IMAGE_FORMAT_SET = [
     'eps', 'ai', 'raw', 'WMF', 'webp', 'tiff'
 ]
 
+DEFAULT_CONTENT_TYPE = 'application/octet-stream'
+
 CONTENT_TYPE = {
     'jpg': 'image/jpeg',
     'jpeg': 'image/jpeg',
@@ -16,6 +18,7 @@ CONTENT_TYPE = {
     'tif': 'image/tiff',
     'tiff': 'image/tiff',
 
+    'txt': 'text/plain',
     'dds': 'application/octet-stream',
 }
 
@@ -24,6 +27,7 @@ class StorageMode(Enum):
     oss = 'oss'
     obs = 'obs'
     minio = 'minio'
+    s3 = 's3'
     azure = 'azure'
 
 

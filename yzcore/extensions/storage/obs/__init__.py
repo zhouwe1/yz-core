@@ -7,11 +7,13 @@
 """
 import base64
 import json
-import os
+from typing import Union, IO, AnyStr
+from os import PathLike
 
 from yzcore.extensions.storage.base import StorageManagerBase, StorageRequestError
 from yzcore.extensions.storage.obs.utils import wrap_request_return_bool
 from yzcore.extensions.storage.schemas import ObsConfig
+from yzcore.exceptions import NotFoundObject
 
 try:
     import obs
@@ -30,11 +32,12 @@ class ObsManager(StorageManagerBase):
         self.__init()
 
     def __init(self, bucket_name=None):
-        """"""
+        """初始化对象"""
         if obs is None:
             raise ImportError("'esdk-obs-python' must be installed to use ObsManager")
 
-        self.bucket_name = bucket_name if bucket_name else self.bucket_name
+        if bucket_name:
+            self.bucket_name = bucket_name
 
         # 创建ObsClient实例
         self.obsClient = ObsClient(
@@ -43,13 +46,6 @@ class ObsManager(StorageManagerBase):
             server=self.endpoint,
         )
 
-        if self.cache_path:
-            try:
-                os.makedirs(self.cache_path)
-            except OSError:
-                pass
-
-    @wrap_request_return_bool
     def create_bucket(self, bucket_name=None, location='cn-south-1'):
         """创建bucket，并且作为当前操作bucket"""
         resp = self.obsClient.createBucket(bucket_name, location=location)
@@ -74,7 +70,6 @@ class ObsManager(StorageManagerBase):
             bucket_name = self.bucket_name
         return self.obsClient.headBucket(bucket_name)
 
-    @wrap_request_return_bool
     def delete_bucket(self, bucket_name=None):
         if bucket_name is None:
             bucket_name = self.bucket_name
@@ -119,43 +114,50 @@ class ObsManager(StorageManagerBase):
 
     def download_stream(self, key, **kwargs):
         resp = self.obsClient.getObject(self.bucket_name, key, loadStreamInMemory=False)
+        if resp.status == 404:
+            raise NotFoundObject()
         return resp.body.response
 
     def download_file(self, key, local_name, progress_callback=None):
-        self.obsClient.getObject(
+        resp = self.obsClient.getObject(
             self.bucket_name, key,
             downloadPath=local_name,
             progressCallback=progress_callback
         )
+        if resp.status == 404:
+            raise NotFoundObject()
 
-    def upload(self, filepath, key: str):
-        """
-        上传文件
-        :param filepath: 文件路径或者文件内容
-        :param key:
-        """
+    def upload_file(self, filepath: Union[str, PathLike], key: str, **kwargs):
+        """上传文件"""
         headers = obs.PutObjectHeader(contentType=self.parse_content_type(key))
-
-        if isinstance(filepath, str):
-            resp = self.obsClient.putFile(
-                self.bucket_name, key, filepath, headers=headers)
-        else:
-            resp = self.obsClient.putContent(
-                self.bucket_name, key, content=filepath)
-
-        if resp.status > 200:
+        resp = self.obsClient.putFile(
+            self.bucket_name, key, filepath, headers=headers)
+        if resp.status >= 300:
             msg = resp.errorMessage
             raise StorageRequestError(f'obs upload error: {msg}')
-
         return self.get_file_url(key)
+
+    def upload_obj(self, file_obj: Union[IO, AnyStr], key: str, **kwargs):
+        """上传文件流"""
+        headers = obs.PutObjectHeader(contentType=self.parse_content_type(key))
+        resp = self.obsClient.putContent(
+            self.bucket_name, key, content=file_obj, headers=headers)
+        if resp.status >= 300:
+            msg = resp.errorMessage
+            raise StorageRequestError(f'obs upload error: {msg}')
+        return self.get_file_url(key)
+
+    def delete_object(self, key: str):
+        """删除文件"""
+        self.obsClient.deleteObject(self.bucket_name, key)
+        return True
 
     def get_policy(
             self,
             filepath: str,
             callback_url: str,
-            callback_data: dict = None,
+            callback_data: dict,
             callback_content_type: str = "application/json",
-            **kwargs,
     ):
         """
         授权给第三方上传
@@ -190,35 +192,36 @@ class ObsManager(StorageManagerBase):
         res = self.post_sign_url(key=filepath, form_param=form_param)
 
         data = dict(
-            mode='obs',
-            AccessKeyId=self.access_key_id,
+            mode=self.mode,
+            dir=filepath,
             host=f'{self.scheme}:{self.host}',
+            AccessKeyId=self.access_key_id,
             policy=res.policy,
             signature=res.signature,
-            dir=filepath
         )
         if not self.callback_directly:
             data['callback'] = {'url': callback_url, 'data': callback_data}
         return data
 
-    def update_file_headers(self, key, headers: dict):
+    def _set_object_headers(self, key: str, headers: dict):
         # 兼容 oss.update_file_headers
         obs_headers = SetObjectMetadataHeader()
-        obs_headers.contentType = headers.get('Content-Type')  # oss 和 obs的参数名称不相同
-        self.obsClient.setObjectMetadata(self.bucket_name, key, headers=obs_headers)
+        obs_headers.contentType = headers['Content-Type']  # oss 和 obs的参数名称不相同
+        resp = self.obsClient.setObjectMetadata(self.bucket_name, key, headers=obs_headers)
+        if resp.status == 404:
+            raise NotFoundObject()
         return True
 
+    @wrap_request_return_bool
     def file_exists(self, key):
         """检查文件是否存在"""
-        resp = self.obsClient.headObject(self.bucket_name, key)
-        if resp.get('status') == 200:
-            return True
-        elif resp.get('status') == 404:
-            return False
+        return self.obsClient.headObject(self.bucket_name, key)
 
     def get_object_meta(self, key: str):
         """获取文件基本元信息，包括该Object的ETag、Size（文件大小）、LastModified，Content-Type，并不返回其内容"""
         resp = self.obsClient.getObjectMetadata(self.bucket_name, key)
+        if resp.status == 404:
+            raise NotFoundObject()
         return {
             'etag': resp.body.etag.strip('"').lower(),
             'size': resp.body.contentLength,

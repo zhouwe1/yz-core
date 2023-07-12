@@ -1,22 +1,22 @@
 import os
 import shutil
-from typing import Union
-from io import BufferedReader
+from typing import Union, IO, AnyStr
 from abc import ABCMeta, abstractmethod
-from yzcore.extensions.storage.utils import create_temp_file
-from yzcore.extensions.storage.const import IMAGE_FORMAT_SET, CONTENT_TYPE
-from yzcore.extensions.storage.schemas import BaseConfig
-from yzcore.logger import get_logger
 from urllib.request import urlopen
 from urllib.error import URLError
-from urllib.parse import urlparse, unquote
 from ssl import SSLCertVerificationError
+
+from yzcore.extensions.storage.utils import create_temp_file, get_filename, get_url_path
+from yzcore.extensions.storage.const import IMAGE_FORMAT_SET, CONTENT_TYPE, DEFAULT_CONTENT_TYPE
+from yzcore.extensions.storage.schemas import BaseConfig
+from yzcore.exceptions import StorageRequestError
+from yzcore.logger import get_logger
+from yzcore.utils.decorator import cached_property
+
 
 logger = get_logger(__name__)
 
-
-class StorageRequestError(Exception):
-    """请求外部对象存储服务时遇到的错误或异常"""
+__all__ = ['StorageManagerBase', 'logger', 'StorageRequestError']
 
 
 class StorageManagerBase(metaclass=ABCMeta):
@@ -32,8 +32,11 @@ class StorageManagerBase(metaclass=ABCMeta):
         self.image_domain = conf.image_domain
         self.asset_domain = conf.asset_domain
         self.cache_path = conf.cache_path
-        self.policy_expire_time = conf.policy_expire_time  # 上传签名有效时间
-        self.private_expire_time = conf.private_expire_time  # 私有桶访问链接有效时间
+        self.policy_expire_time = conf.policy_expire_time  # 上传policy有效时间
+        self.private_expire_time = conf.private_expire_time  # 私有桶访问链接签名有效时间
+
+        if self.cache_path:
+            self.make_dir(self.cache_path)
 
     @abstractmethod
     def create_bucket(self, bucket_name):
@@ -64,7 +67,7 @@ class StorageManagerBase(metaclass=ABCMeta):
 
     @abstractmethod
     def get_sign_url(self, key, expire=0):
-        """生成下载对象的带授权信息的URL"""
+        """生成获取文件的带签名的URL"""
 
     @abstractmethod
     def post_sign_url(self, key):
@@ -90,9 +93,16 @@ class StorageManagerBase(metaclass=ABCMeta):
     def get_object_meta(self, key: str):
         """获取文件基本元信息，包括该Object的ETag、Size（文件大小）、LastModified，Content-Type，并不返回其内容"""
 
-    @abstractmethod
     def update_file_headers(self, key, headers: dict):
         """更改Object的元数据信息，包括Content-Type这类标准的HTTP头部"""
+        if not headers.get('Content-Type'):
+            headers['Content-Type'] = self.parse_content_type(key)
+        self._set_object_headers(key, headers)
+        return True
+
+    @abstractmethod
+    def _set_object_headers(self, key, headers):
+        """调用对象存储SDK更新object headers"""
 
     @abstractmethod
     def file_exists(self, key):
@@ -120,7 +130,7 @@ class StorageManagerBase(metaclass=ABCMeta):
         else:
             if not local_name:
                 if path:
-                    local_name = os.path.abspath(os.path.join(self.cache_path, path, self.get_filename(key)))
+                    local_name = os.path.abspath(os.path.join(self.cache_path, path, get_filename(key)))
                 else:
                     local_name = os.path.abspath(os.path.join(self.cache_path, key))
             self.make_dir(os.path.dirname(local_name))
@@ -135,9 +145,21 @@ class StorageManagerBase(metaclass=ABCMeta):
     def download_file(self, key, local_name, **kwargs):
         """下载文件"""
 
+    def upload(self, filepath: Union[str, os.PathLike], key: str, **kwargs):
+        """上传文件"""
+        return self.upload_file(filepath, key, **kwargs)
+
     @abstractmethod
-    def upload(self, filepath: Union[str, BufferedReader], key: str):
-        """上传本地文件或文件流"""
+    def upload_file(self, filepath: Union[str, os.PathLike], key: str, **kwargs):
+        """上传文件"""
+
+    @abstractmethod
+    def upload_obj(self, file_obj: Union[IO, AnyStr], key: str, **kwargs):
+        """上传文件流"""
+
+    @abstractmethod
+    def delete_object(self, key: str):
+        """删除文件"""
 
     @abstractmethod
     def get_policy(
@@ -158,17 +180,36 @@ class StorageManagerBase(metaclass=ABCMeta):
         :return:
         """
 
-    @property
+    @cached_property
     def host(self):
         return u'//{}.{}'.format(self.bucket_name, self.endpoint)
 
+    @cached_property
+    def _host_minio(self):
+        return u'//{}/{}'.format(self.endpoint, self.bucket_name)
+
     def get_file_url(self, key, with_scheme=False):
+        """oss/obs: f'{bucket_name}.{endpoint}' 的方式拼接file_url"""
         if not any((self.image_domain, self.asset_domain)):
-            resource_url = u"//{}.{}/{}".format(self.bucket_name, self.endpoint, key)
+            resource_url = u"{}/{}".format(self.host, key)
         elif key.split('.')[-1].lower() in IMAGE_FORMAT_SET:
             resource_url = u"//{domain}/{key}".format(domain=self.image_domain, key=key)
         else:
             resource_url = u"//{domain}/{key}".format(domain=self.asset_domain, key=key)
+        if with_scheme:
+            resource_url = self.scheme + ':' + resource_url
+        return resource_url
+
+    def _get_file_url_minio(self, key, with_scheme=False):
+        """minio/s3/azure: f'{endpoint}/{bucket_name}' 的方式拼接file_url"""
+        if not any((self.image_domain, self.asset_domain)):
+            resource_url = u"{}/{}".format(self._host_minio, key)
+        elif key.split('.')[-1].lower() in IMAGE_FORMAT_SET:
+            resource_url = u"//{domain}/{bucket}/{key}".format(
+                domain=self.image_domain, bucket=self.bucket_name, key=key)
+        else:
+            resource_url = u"//{domain}/{bucket}/{key}".format(
+                domain=self.asset_domain, bucket=self.bucket_name, key=key)
         if with_scheme:
             resource_url = self.scheme + ':' + resource_url
         return resource_url
@@ -209,7 +250,7 @@ class StorageManagerBase(metaclass=ABCMeta):
             # 检查bucket是否正确
             assert self.is_exist_bucket(), f'{self.bucket_name}: No Such Bucket'
             # CORS 检查
-            assert self._cors_check(), f'{self.bucket_name}: CORS设置错误'
+            # assert self._cors_check(), f'{self.bucket_name}: CORS设置错误'
 
             # 生成一个带有随机字符串的内存文件
             temp_file = create_temp_file(text_length=32)
@@ -217,7 +258,7 @@ class StorageManagerBase(metaclass=ABCMeta):
 
             key = f'storage_check_{text}.txt'
             # 上传
-            file_url = self.upload(temp_file, key=key)
+            file_url = self.upload_obj(temp_file, key=key)
             logger.debug(f'upload: {file_url}')
             assert file_url, f'{self.bucket_name}: Upload Failed'
             # 加签url
@@ -239,6 +280,10 @@ class StorageManagerBase(metaclass=ABCMeta):
             objects = self.iter_objects(key)
             logger.debug(f'iter_objects: {objects}')
             assert objects, f'{self.bucket_name} iter objects Failed'
+
+            # 删除文件
+            self.delete_object(key)
+            assert not self.file_exists(key), f'{self.bucket_name} delete object Failed'
 
             return True
         except AssertionError as e:
@@ -272,22 +317,20 @@ class StorageManagerBase(metaclass=ABCMeta):
     @staticmethod
     def parse_content_type(filename):
         ext = filename.split('.')[-1].lower()
-        return CONTENT_TYPE.get(ext, 'application/octet-stream')
+        return CONTENT_TYPE.get(ext, DEFAULT_CONTENT_TYPE)
 
     def get_key_from_url(self, url, urldecode=False):
-        """从URL中获取对象存储key"""
-        if url.startswith('//'):
-            url = 'https:' + url
-        elif not url.startswith('http'):
-            url = 'https://' + url
-        url_parse = urlparse(url)
-        path = url_parse.path
-        if urldecode:
-            path = unquote(path)
-        return path[1:]  # 去掉最前面的 /
+        """
+        从URL中获取对象存储key
+        oss/obs: 去掉最前面的 /
+        """
+        url_path = get_url_path(url, urldecode)
+        return url_path[1:]
 
-    @staticmethod
-    def get_filename(key):
-        """从key中提取文件名，不包含路径"""
-        key = unquote(key)
-        return key.split('/')[-1]
+    def _get_key_from_url_minio(self, url, urldecode=False):
+        """
+        从URL中获取对象存储key
+        minio/s3/azure: 去掉最前面的 f'/{bucket_name}/'
+        """
+        url_path = get_url_path(url, urldecode)
+        return url_path[len(self.bucket_name)+2:]
