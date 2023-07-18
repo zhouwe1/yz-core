@@ -18,18 +18,14 @@ from yzcore.default_settings import default_setting as settings
 def get_db_engine(uri=settings.DB_URI):
     if uri is None:
         raise EnvironmentError('需要配置"DB_URI"变量！')
+    connect_args = {}
     _typ = urlparse(uri).scheme
     if _typ.startswith('sqlite'):
-        return create_engine(
-            settings.DB_URI,
-            connect_args={"check_same_thread": False}
-            # 只有SQLite才需要，其他数据库不需要。SQLite 只允许一个线程与其通信
-        )
+        # 只有SQLite才需要，其他数据库不需要。SQLite 只允许一个线程与其通信
+        connect_args['check_same_thread'] = False
     else:
-        return create_engine(
-            settings.DB_URI,
-            connect_args={"connect_timeout": 5}
-        )
+        connect_args['connect_timeout'] = 5
+    return create_engine(uri, connect_args=connect_args)
 
 
 engine = get_db_engine()
