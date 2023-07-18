@@ -118,7 +118,7 @@ class StorageManagerBase(metaclass=ABCMeta):
             is_stream = True:
                 >>> result = self.download('readme.txt', is_stream=True)
                 >>> print(result.read())
-                'hello world'
+                b'hello world'
             is_stream = False:
                 >>> result = self.download('readme.txt', '/tmp/cache/readme.txt')
                 >>> print(result)

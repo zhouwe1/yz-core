@@ -5,33 +5,20 @@
 @date: 2020-6-30
 @desc: ...
 """
-# from typing import Any
-# from sqlalchemy.ext.declarative import as_declarative, declared_attr
-#
-#
-# @as_declarative()
-# class Base:
-#     # Generate __tablename__ automatically
-#     @declared_attr
-#     def __tablename__(cls) -> str:
-#         return cls.__name__.lower()
-#
-#     id: Any
-#     __name__: str
-
-from urllib.parse import splittype
+from urllib.parse import urlparse
 from typing import Generator
 from sqlalchemy import create_engine
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
 
+from yzcore.db.CustomQuery import Query
 from yzcore.default_settings import default_setting as settings
 
 
-def get_db_engine():
-    if settings.DB_URI is None:
+def get_db_engine(uri=settings.DB_URI):
+    if uri is None:
         raise EnvironmentError('需要配置"DB_URI"变量！')
-    _typ, _ = splittype(settings.DB_URI)
+    _typ = urlparse(uri).scheme
     if _typ.startswith('sqlite'):
         return create_engine(
             settings.DB_URI,
@@ -41,11 +28,12 @@ def get_db_engine():
     else:
         return create_engine(
             settings.DB_URI,
+            connect_args={"connect_timeout": 5}
         )
 
 
 engine = get_db_engine()
-SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
+SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine, query_cls=Query)
 
 Base = declarative_base()
 
