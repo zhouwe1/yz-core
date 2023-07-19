@@ -11,12 +11,11 @@ def create_temp_file(text_length=16):
     return file
 
 
-def get_url_path(url, urldecode=False):
+def get_url_path(url):
     """提取URL中的path数据"""
     if not any([url.startswith('//'), url.startswith('http')]):
         url = '//' + url
-    if urldecode:
-        url = unquote(url)
+    url = unquote(url)
     return urlparse(url).path
 
 

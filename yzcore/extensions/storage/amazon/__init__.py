@@ -190,6 +190,6 @@ class S3Manager(StorageManagerBase):
     def get_file_url(self, key, with_scheme=False):
         return self._get_file_url_minio(key, with_scheme)
 
-    def get_key_from_url(self, url, urldecode=False):
+    def get_key_from_url(self, url):
         """从URL中获取对象存储key"""
-        return self._get_key_from_url_minio(url, urldecode)
+        return self._get_key_from_url_minio(url)

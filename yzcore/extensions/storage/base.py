@@ -326,18 +326,18 @@ class StorageManagerBase(metaclass=ABCMeta):
         ext = filename.split('.')[-1].lower()
         return CONTENT_TYPE.get(ext, DEFAULT_CONTENT_TYPE)
 
-    def get_key_from_url(self, url, urldecode=False):
+    def get_key_from_url(self, url):
         """
         从URL中获取对象存储key
         oss/obs: 去掉最前面的 /
         """
-        url_path = get_url_path(url, urldecode)
+        url_path = get_url_path(url)
         return url_path[1:]
 
-    def _get_key_from_url_minio(self, url, urldecode=False):
+    def _get_key_from_url_minio(self, url):
         """
         从URL中获取对象存储key
         minio/s3/azure: 去掉最前面的 f'/{bucket_name}/'
         """
-        url_path = get_url_path(url, urldecode)
+        url_path = get_url_path(url)
         return url_path[len(self.bucket_name)+2:]

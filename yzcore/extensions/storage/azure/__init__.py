@@ -114,9 +114,9 @@ class AzureManager(StorageManagerBase):
     def host(self):
         return self._host_minio
 
-    def get_key_from_url(self, url, urldecode=False):
+    def get_key_from_url(self, url):
         """从URL中获取对象存储key"""
-        return self._get_key_from_url_minio(url, urldecode)
+        return self._get_key_from_url_minio(url)
 
     def iter_objects(self, prefix='', marker=None, delimiter=None, max_keys=100):
         objects = self.container_client.list_blobs(name_starts_with=prefix, results_per_page=max_keys)
