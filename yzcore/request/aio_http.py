@@ -17,7 +17,6 @@
 import asyncio
 from socket import AF_INET
 from typing import TypeVar, Union, Optional, List, Dict, AnyStr
-from yzcore.utils.fastapi_context import context
 
 try:
     import json as _json
@@ -122,7 +121,7 @@ class AioHTTP:
     async def fetch(
             cls, method: str, url: str,
             params=None, data=None, json=None, headers=None, timeout=30,
-            is_close_session: bool = False, with_site_code: bool = True, **kwargs
+            is_close_session: bool = False, **kwargs
     ):
         """
         公共请求调用方法
@@ -135,7 +134,6 @@ class AioHTTP:
         :param headers: 请求头参数
         :param timeout: 超时时间
         :param is_close_session: 是否关闭Session
-        :param with_site_code: 是否带上site_code
         :return:
         """
         client_session = cls.get_session()
@@ -143,11 +141,6 @@ class AioHTTP:
         if params:
             params = {key: str(value) for key, value in params.items() if
                       value is not None}
-        if with_site_code:
-            if headers:
-                headers.update({'site-code': context.data['site_code']})
-            else:
-                headers = {'site-code': context.data['site_code']}
         async with cls.semaphore:
             try:
                 async with __request(
