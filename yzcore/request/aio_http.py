@@ -15,9 +15,9 @@
 参考：https://github.com/raphaelauv/fastAPI-aiohttp-example
 """
 import asyncio
-from concurrent import futures
 from socket import AF_INET
 from typing import TypeVar, Union, Optional, List, Dict, AnyStr
+from yzcore.utils.fastapi_context import context
 
 try:
     import json as _json
@@ -142,6 +142,10 @@ class AioHTTP:
         if params:
             params = {key: str(value) for key, value in params.items() if
                       value is not None}
+        if headers:
+            headers.update({'site-code': context.data['site_code']})
+        else:
+            headers = {'site-code': context.data['site_code']}
         async with cls.semaphore:
             try:
                 async with __request(
