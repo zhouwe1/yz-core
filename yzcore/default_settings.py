@@ -30,6 +30,7 @@ class DefaultSetting(BaseSettings):
     DEBUG: bool = True
     API_V1_STR: str = "/api/v1"
     SECRET_KEY: str = get_random_secret_key()
+    BASE_URL: str = None
 
     DB_URI: str = None
     ID_URL: AnyUrl = None
