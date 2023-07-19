@@ -122,7 +122,7 @@ class AioHTTP:
     async def fetch(
             cls, method: str, url: str,
             params=None, data=None, json=None, headers=None, timeout=30,
-            is_close_sesion: bool = False, **kwargs
+            is_close_session: bool = False, with_site_code: bool = True, **kwargs
     ):
         """
         公共请求调用方法
@@ -134,7 +134,8 @@ class AioHTTP:
         :param json:    请求的Json参数
         :param headers: 请求头参数
         :param timeout: 超时时间
-        :param is_close_sesion: 是否关闭Session
+        :param is_close_session: 是否关闭Session
+        :param with_site_code: 是否带上site_code
         :return:
         """
         client_session = cls.get_session()
@@ -142,10 +143,11 @@ class AioHTTP:
         if params:
             params = {key: str(value) for key, value in params.items() if
                       value is not None}
-        if headers:
-            headers.update({'site-code': context.data['site_code']})
-        else:
-            headers = {'site-code': context.data['site_code']}
+        if with_site_code:
+            if headers:
+                headers.update({'site-code': context.data['site_code']})
+            else:
+                headers = {'site-code': context.data['site_code']}
         async with cls.semaphore:
             try:
                 async with __request(
@@ -170,7 +172,7 @@ class AioHTTP:
                 traceback.print_exc()
                 return {'detail': e}, 500
             else:
-                if is_close_sesion:
+                if is_close_session:
                     await cls.session.close()
                 return result, response.status
 
