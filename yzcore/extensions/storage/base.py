@@ -253,8 +253,7 @@ class StorageManagerBase(metaclass=ABCMeta):
             # assert self._cors_check(), f'{self.bucket_name}: CORS设置错误'
 
             # 生成一个带有随机字符串的内存文件
-            temp_file = create_temp_file(text_length=32)
-            text = temp_file.getvalue().decode()
+            temp_file, text = create_temp_file(text_length=32)
 
             key = f'storage_check_{text}.txt'
             logger.debug(f'file_exists: {self.file_exists(key)}')
