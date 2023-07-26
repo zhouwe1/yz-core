@@ -26,3 +26,11 @@ class Query(_Query):
     def join(self, *props, **kwargs):
         return super().join(*props, **kwargs).filter_by(
             site_code=context.data['site_code'])
+
+    def outerjoin(self, *props, **kwargs):
+        for prop in props:
+            if not isinstance(prop, Alias):
+                return super().outerjoin(*props, **kwargs).filter_by(
+                    site_code=context.data['site_code'])
+            else:
+                return super().outerjoin(*props, **kwargs)
