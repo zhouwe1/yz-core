@@ -15,7 +15,9 @@ from yzcore.db.CustomQuery import Query
 from yzcore.default_settings import default_setting as settings
 
 
-def get_db_engine(uri=settings.DB_URI):
+def get_db_engine(uri=''):
+    if not uri:
+        uri = settings.DB_URI
     if uri is None:
         raise EnvironmentError('需要配置"DB_URI"变量！')
     connect_args = {}
@@ -28,15 +30,21 @@ def get_db_engine(uri=settings.DB_URI):
     return create_engine(uri, connect_args=connect_args)
 
 
-engine = get_db_engine()
-SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine, query_cls=Query)
+# engine = get_db_engine()
+# SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)  # , query_cls=Query 私有化去掉site_code注入
 
 Base = declarative_base()
 
 
+def get_session(uri=''):
+    engine = get_db_engine(uri)
+    return sessionmaker(autocommit=False, autoflush=False, bind=engine)  # , query_cls=Query 私有化去掉site_code注入
+
+
 def get_db() -> Generator:
     try:
-        db = SessionLocal()
+        session = get_session()
+        db = session()
         yield db
     finally:
         db.close()

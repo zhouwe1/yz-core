@@ -7,7 +7,7 @@ with open("README.md", "r", encoding="utf-8") as fh:
 
 setuptools.setup(
     name="yz-core2",  # Replace with your own username
-    version="1.0.61b4",
+    version="1.0.61b5",
     author="zhouwe1",
     author_email="zhouwei@live.it",
     description="An ID generator for distributed microservices",
@@ -50,5 +50,6 @@ setuptools.setup(
         'storage-aws': ['boto3==1.26.157'],
         'storage-minio': ['minio==7.1.12'],
         'storage-azure': ['azure-storage-blob==12.16.0'],
+        'bcrypt': ['bcrypt==3.2.2'],
     }
 )

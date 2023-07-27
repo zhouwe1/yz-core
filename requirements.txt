@@ -17,6 +17,9 @@ orjson==3.3.1
 # ------Azure Blob------
 # azure-storage-blob==12.16.0
 
+# 密码
+bcrypt==3.2.2
+
 # 测试模块需要用到的依赖包
 # pytest==6.1.1
 # aioresponses==0.7.0
