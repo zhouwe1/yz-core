@@ -8,7 +8,6 @@
 from urllib.parse import urlparse
 from typing import Generator
 from sqlalchemy import create_engine
-from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
 
 from yzcore.db.CustomQuery import Query
@@ -28,12 +27,6 @@ def get_db_engine(uri=''):
     else:
         connect_args['connect_timeout'] = 5
     return create_engine(uri, connect_args=connect_args)
-
-
-# engine = get_db_engine()
-# SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)  # , query_cls=Query 私有化去掉site_code注入
-
-Base = declarative_base()
 
 
 def get_session(uri=''):

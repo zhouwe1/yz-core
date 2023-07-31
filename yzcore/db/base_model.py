@@ -6,7 +6,9 @@
 @desc: ...
 """
 from sqlalchemy import Column, String
-from yzcore.db.db_session import Base as _Base
+from sqlalchemy.ext.declarative import declarative_base
+
+_Base = declarative_base()
 
 
 class Base(_Base):
