@@ -21,9 +21,6 @@ UpdateSchemaType = TypeVar("UpdateSchemaType", bound=BaseModel)
 DictorList = TypeVar("DictorList", dict, list)
 
 
-# DictorList = Union[Dict, List]
-
-
 class MongoCRUDBase(Generic[CreateSchemaType, UpdateSchemaType]):
     def __init__(
             self,
@@ -209,7 +206,8 @@ class MongoCRUDBase(Generic[CreateSchemaType, UpdateSchemaType]):
             return 0
         requests = []
         for bulk_update_data in bulk_update_datas:
-            requests.append(UpdateMany(bulk_update_data['opt'], bulk_update_data['data']))
+            opt = self._fill_opt(bulk_update_data['opt'])
+            requests.append(UpdateMany(opt, bulk_update_data['data']))
         result = self.collection.bulk_write(requests=requests, session=session)
         return result.modified_count
 
@@ -220,6 +218,9 @@ class MongoCRUDBase(Generic[CreateSchemaType, UpdateSchemaType]):
         :param session: 事务操作
         :return:
         """
+        opt = self._fill_opt({})
+        if opt:
+            pipeline.insert(0, {"$match": opt})
         cursor = self.collection.aggregate(pipeline, session=session, **kwargs)
         return list(cursor)
 
