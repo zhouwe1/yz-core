@@ -5,15 +5,13 @@
 @date: 2020-6-22
 @desc: 非关系数据库的增删改查封装
 """
-from typing import Any, Dict, Generic, List, Optional, Type, TypeVar, Union
-
+from typing import Dict, Generic, List, TypeVar
 from pydantic import BaseModel, AnyUrl
-from pymongo.client_session import ClientSession
 
 try:
-    from pymongo import InsertOne, DeleteOne, ReplaceOne, UpdateMany
-    from pymongo.collection import Collection
     from pymongo import MongoClient
+    from pymongo.client_session import ClientSession
+    from pymongo import UpdateMany
 except:
     pass
 
@@ -42,6 +40,11 @@ class MongoCRUDBase(Generic[CreateSchemaType, UpdateSchemaType]):
         self.collection = self.db[collection_name]
         # self.coll_name = collection_name
 
+    @staticmethod
+    def _fill_opt(opt: dict):
+        """注入查询参数，例如 site_code"""
+        return opt
+
     def count(self, opt: dict = None, session: ClientSession = None):
         """
         统计数目
@@ -50,6 +53,9 @@ class MongoCRUDBase(Generic[CreateSchemaType, UpdateSchemaType]):
         :param session: 事务操作
         :return:
         """
+        if not opt:
+            opt = dict()
+        opt = self._fill_opt(opt)
         if opt:
             return self.collection.count_documents(opt, session=session)
         return self.collection.estimated_document_count(session=session)
@@ -65,10 +71,12 @@ class MongoCRUDBase(Generic[CreateSchemaType, UpdateSchemaType]):
         :param session: 事务操作
         :return:
         """
+        if opt is None:
+            opt = dict()
+        opt = self._fill_opt(opt)
         if is_logical_del:
             opt.update({"isDelete": False})
-        return self.collection.find_one(opt, projection=select_col,
-                                        session=session)
+        return self.collection.find_one(opt, projection=select_col, session=session)
 
     def list(self, opt: dict = None, select_col: DictorList = None,
              limit: int = 0, offset: int = 0, sort: List[tuple] = None,
@@ -93,16 +101,17 @@ class MongoCRUDBase(Generic[CreateSchemaType, UpdateSchemaType]):
         """
         if opt is None:
             opt = dict()
+        opt = self._fill_opt(opt)
         if is_logical_del:
             opt.update({"isDelete": False})
-        data = dict(
+        results = list(self.collection.find(
             filter=opt,
             projection=select_col,
             skip=offset,
             limit=limit,
-            sort=sort
-        )
-        results = list(self.collection.find(**data, session=session))
+            sort=sort,
+            session=session,
+        ))
         return results
 
     def create(self, data: DictorList, is_return_obj: bool = False,
@@ -149,6 +158,7 @@ class MongoCRUDBase(Generic[CreateSchemaType, UpdateSchemaType]):
             update = {"$set": data}
         else:
             update = data
+        opt = self._fill_opt(opt)
         if not is_many:
             result = self.collection.update_one(opt, update, session=session)
             # result = self.collection.find_one_and_update(opt, update)
@@ -169,6 +179,7 @@ class MongoCRUDBase(Generic[CreateSchemaType, UpdateSchemaType]):
         :param session: 事务操作
         :return:
         """
+        opt = self._fill_opt(opt)
         if is_logical_del:
             update = {"$set": {"isDelete": True}}
             if not is_many:
