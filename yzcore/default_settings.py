@@ -58,6 +58,8 @@ def get_configer(ext: str = "ini", import_path=os.curdir):
         configname = 'config_production'
     elif profile == 'testing':
         configname = 'config_testing'
+    elif profile == 'privatition':
+        configname = 'config_privatition'
     else:
         configname = 'config_dev'
     print(f"===>当前环境为：{profile}!导入的配置文件为：{configname}.{ext}")

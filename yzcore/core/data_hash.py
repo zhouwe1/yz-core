@@ -11,10 +11,9 @@ import hashlib
 
 def data_md5(data) -> str:
     """
-    对传入的数据进行MD5
-
+    取传入数据的MD5摘要
     :param data:
-    :return: d41d8cd98f00b204e9800998ecf8427e (空)
+    :return: 'd41d8cd98f00b204e9800998ecf8427e'
     """
     if not isinstance(data, bytes):
         if not isinstance(data, str):
@@ -22,4 +21,3 @@ def data_md5(data) -> str:
         data = data.encode('utf-8')
     m = hashlib.md5(data)
     return m.hexdigest()
-
